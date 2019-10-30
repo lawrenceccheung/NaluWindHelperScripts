@@ -162,7 +162,7 @@ leftframe=Tk.Frame(top)
 leftframe.pack(side=Tk.LEFT)
 
 # Set up the main plot
-fig=Figure(figsize=(6,6))
+fig=Figure(figsize=(6,6), facecolor='white')
 ax=fig.add_axes([0.1,0.1,0.85,0.85])
 canvas=FigureCanvasTkAgg(fig,master=center)
 ##canvas.get_tk_widget().grid(row=0,column=1)
