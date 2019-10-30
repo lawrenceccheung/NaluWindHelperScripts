@@ -3,9 +3,9 @@
 Scripts to help with Nalu-Wind
 
 **Contents**
-- [buildrefinemesh.sh](#buildrefinemesh.sh)
-- [plotmesh.py](#plotmesh.py)
-- [plotFAST.py](#plotfast.py)
+- [buildrefinemesh.sh](#buildrefinemesh-sh)
+- [plotmesh.py](#plotmesh-py)
+- [plotFAST.py](#plotfast-py)
 
 ## buildrefinemesh.sh
 **Creates a mesh, does local refinement**
