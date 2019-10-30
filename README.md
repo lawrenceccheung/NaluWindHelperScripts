@@ -3,11 +3,11 @@
 Scripts to help with Nalu-Wind
 
 **Contents**
-- [buildrefinemesh.sh](#buildrefinemesh-sh)
-- [plotmesh.py](#plotmesh-py)
-- [plotFAST.py](#plotfast-py)
+- [Mesh refinement script](#mesh-refinement-script)
+- [Plot mesh refinement](#plot-mesh-refinement)
+- [Plot FAST output](#plot-fast-output)
 
-## buildrefinemesh.sh
+## Mesh refinement script
 **Creates a mesh, does local refinement**
 
 Requires an yaml input file like this:  
@@ -67,8 +67,8 @@ nalu_preprocess:
 
 ```
 
-## plotmesh.py
+## Plot mesh refinement
 **Plots the mesh refinement levels**
 
-## plotFAST.py
+## Plot FAST output
 **Plots FAST output**
