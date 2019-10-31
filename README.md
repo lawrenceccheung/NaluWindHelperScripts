@@ -3,9 +3,26 @@
 Scripts to help with Nalu-Wind
 
 **Contents**
+- [Plot mesh script](#plot-mesh-refinement): [plotmesh.py](plotmesh.py)
 - [Mesh refinement script](#mesh-refinement-script): [buildrefinemesh.sh](buildrefinemesh.sh)
-- [Plot mesh refinement](#plot-mesh-refinement): [plotmesh.py](plotmesh.py)
-- [Plot FAST output](#plot-fast-output): [plotFAST.py](plotFAST.py)
+- [Plot FAST output script](#plot-fast-output): [plotFAST.py](plotFAST.py)
+
+## Plot mesh refinement
+**[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
+Usage: 
+```bash
+$ module load canopy
+$ plotmesh.py YAMLFILE
+```
+Here `YAMLFILE` is a yaml file containing the mesh definition, refinement windows, and (optionally) the slice mesh parameters.
+
+Output:  
+![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/c9fd9123b82f1f19452878e0e1c05a0a/image.png)
+
+Each different colored rectangle represents a halving of the mesh resolution (8x refinement).  The arrow in the middle of the domain points in the wind direction.
+
+If you include the `slice_mesh` section in the YAML file, then it will also include the areas where the sections are being taken, like this:  
+![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/9092a382b8f005629ebd69dc216d8f0c/image.png)
 
 ## Mesh refinement script
 **[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
@@ -60,8 +77,17 @@ nalu_preprocess:
       - [ 3.0, 6.0, 3.0, 3.0 ]
 ```
 
-## Plot mesh refinement
-**[plotmesh.py](plotmesh.py): Plots the mesh refinement levels**
+
 
 ## Plot FAST output
-**[plotFAST.py](plotFAST.py): Plots FAST output**
+**[plotFAST.py](plotFAST.py): Plots FAST output**  
+Usage  
+```bash
+$ module load canopy
+$ plotFAST.py FAST.T1.out [FAST.T2.out  ... ]
+```
+Output:  
+![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/8f0b2d522459db26ee33962f8a36559f/image.png)
+
+It's pretty self-explanatory.  Check the variables on the left you would like to plot, and hit `Plot`.
+If the output files get updated, hit `Reload` to reread the files from disk.
