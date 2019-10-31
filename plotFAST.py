@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 import sys
 if sys.version_info[0] < 3:
@@ -124,7 +125,7 @@ def _plotdata():
                         label=headers[i+1]+" "+units[i+1]+" ["+names[idat]+"]")
                 canvas.draw()
     ax.set_xlabel(headers[0]+" "+units[0])
-    ax.legend()
+    ax.legend(prop={'size': 10})
     canvas.draw()
     toolbar.update()
     canvas.show()
@@ -153,7 +154,7 @@ def _reloaddata():
 
 top  = Tk.Tk()
 #top.geometry("800x400")
-top.wm_title("Fun stuff")
+top.wm_title("FAST output")
 
 center = Tk.Frame(top)
 center.pack(side=Tk.RIGHT)
@@ -162,7 +163,7 @@ leftframe=Tk.Frame(top)
 leftframe.pack(side=Tk.LEFT)
 
 # Set up the main plot
-fig=Figure(figsize=(6,6), facecolor='white')
+fig=Figure(figsize=(8,8), facecolor='white')
 ax=fig.add_axes([0.1,0.1,0.85,0.85])
 canvas=FigureCanvasTkAgg(fig,master=center)
 ##canvas.get_tk_widget().grid(row=0,column=1)
