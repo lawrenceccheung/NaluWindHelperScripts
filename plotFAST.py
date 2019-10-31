@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+from itertools import cycle
 
 import sys
 if sys.version_info[0] < 3:
@@ -112,16 +113,18 @@ def on_key_event(event):
 # Plots all of the data
 def _plotdata():
     global alldat
-    lstyles=['-','-.','--']
+    lstyles=['-','-.','--','.']
     ax.clear()         # clear axes from previous plot
     plotlist=list(teststuff.state())
     ylabel=""
     for i,ploti in enumerate(plotlist[:]):
         if ploti==1: 
+            color=next(colorcycle)
             for idat, dat in enumerate(alldat):
                 print("plotting "+headers[i+1]+" ["+names[idat]+"]" )
                 #print("data length: %i"%len(dat))
                 ax.plot(dat[:,0], dat[:,i+1], linestyle=lstyles[idat],
+                        color=color,
                         label=headers[i+1]+" "+units[i+1]+" ["+names[idat]+"]")
                 canvas.draw()
     ax.set_xlabel(headers[0]+" "+units[0])
@@ -142,6 +145,8 @@ if len(sys.argv)<2:
     print("Usage: ")
     print(" "+sys.argv[0]+" FASTFILE1 [FASTFILE2 ... ]")
     sys.exit(1)
+
+colorcycle=cycle(plt.rcParams['axes.color_cycle'])
 
 # Load the data
 alldat, headers, units, names=loadalldata(sys.argv[1:])
