@@ -9,7 +9,7 @@ Scripts to help with Nalu-Wind
 
 ## Plot mesh refinement
 **[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
-Usage: 
+#### Usage
 ```bash
 $ module load canopy
 $ plotmesh.py YAMLFILE
@@ -26,8 +26,18 @@ If you include the `slice_mesh` section in the YAML file, then it will also incl
 
 ## Mesh refinement script
 **[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
-
-Requires an yaml input file like this:  
+#### Usage
+Edit the beginning of the file with the input variables (Change this later to be more flexible)
+```bash
+yamlfile=abl_preprocess.yaml
+outputmesh=refinedmesh.exo
+NCORES=8
+CREATEMESH=true
+RUNNALUPREPROC=true
+RUNREFINE=true
+NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
+```
+The variable `yamlfile` should point to a yaml input file like this:  
 ```yaml
 nalu_abl_mesh:
   output_db: mesh_abl.exo
@@ -77,11 +87,64 @@ nalu_preprocess:
       - [ 3.0, 6.0, 3.0, 3.0 ]
 ```
 
+When you execute the script,
+```bash
+$ ./buildrefinemesh.sh
+```
+the first stage should be the mesh creation part
+```
+Nalu ABL Mesh Generation Utility
+Input file: testmesh.yaml
+HexBlockBase: Registering parts to meta data
+	Mesh block: fluid_part
+Num. nodes = 41616; Num elements = 37500
+	Generating nodes...done
+	Generating elements...done
+	Creating element connectivity... done
+	Generating X Sideset: west
+	Generating X Sideset: east
+	Generating Y Sideset: south
+	Generating Y Sideset: north
+	Generating Z Sideset: lower
+	Generating Z Sideset: upper
+	Finalizing bulk data modifications ... done
+	Generating coordinates...
+	 Generating x spacing: constant_spacing
+	 Generating y spacing: constant_spacing
+	 Generating z spacing: constant_spacing
+Writing mesh to file: mesh_abl.exo
+```
+Followed by the preprocessing stage which marks out areas for local refinement:
+```
+Nalu Preprocessing Utility
+Input file: testmesh.yaml
+Found 1 tasks
+    - mesh_local_refinement
 
+Performing metadata updates... 
+Metadata update completed
+Reading mesh bulk data... done.
+
+--------------------------------------------------
+Begin task: mesh_local_refinement
+```
+Then it will run mesh_adapt through the multiple stages of refinement:
+```
+Running mesh refinement step
+------------------
+STAGE 1 REFINEMENT: tempmesh0.e --> tempmesh1.e
+------------------
+mpirun -n 8 mesh_adapt --refine=DEFAULT --input_mesh=tempmesh0.e --output_mesh=tempmesh1.e --RAR_info=adapt1.yaml --ioss_read_options="auto-decomp:yes" 
+INFO: ioss_read_options=auto-decomp:yes ioss_write_options=
+PerceptMesh:: opening tempmesh0.e
+
+Using decomposition method 'RIB' on 8 processors.
+
+```
 
 ## Plot FAST output
 **[plotFAST.py](plotFAST.py): Plots FAST output**  
-Usage  
+#### Usage  
 ```bash
 $ module load canopy
 $ plotFAST.py FAST.T1.out [FAST.T2.out  ... ]
@@ -90,4 +153,4 @@ Output:
 ![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/8f0b2d522459db26ee33962f8a36559f/image.png)
 
 It's pretty self-explanatory.  Check the variables on the left you would like to plot, and hit `Plot`.
-If the output files get updated, hit `Reload` to reread the files from disk.
+If the output files get updated, hit `Reload data` to reread the files from disk.
