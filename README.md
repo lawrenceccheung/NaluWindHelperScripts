@@ -3,20 +3,18 @@
 Scripts to help with Nalu-Wind
 
 **Contents**
-- [Mesh refinement script](#mesh-refinement-script)
-- [Plot mesh refinement](#plot-mesh-refinement)
-- [Plot FAST output](#plot-fast-output)
+- [Mesh refinement script](#mesh-refinement-script): [buildrefinemesh.sh](buildrefinemesh.sh)
+- [Plot mesh refinement](#plot-mesh-refinement): [plotmesh.py](plotmesh.py)
+- [Plot FAST output](#plot-fast-output): [plotFAST.py](plotFAST.py)
 
 ## Mesh refinement script
-**Creates a mesh, does local refinement**
+**[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
 
 Requires an yaml input file like this:  
 ```yaml
 nalu_abl_mesh:
   output_db: mesh_abl.exo
-
   spec_type: bounding_box
-
   fluid_part_name: fluid_part
 
   vertices:
@@ -42,33 +40,28 @@ nalu_preprocess:
   # field data structures
   tasks:
     - mesh_local_refinement
-#  - init_abl_fields
 
   mesh_local_refinement:
     fluid_parts: [fluid_part]
     write_percept_files: true
     percept_file_prefix: adapt
     search_tolerance: 11.0
-
     turbine_locations:
       - [ 200.0, 200.0, 0.0 ]
       - [ 230.0, 300.0, 0.0 ]
-
     turbine_diameters: 15.0        # Provide a list for variable diameters
     turbine_heights: 50.0          # Provide a list for variable tower heights
     orientation:
       type: wind_direction
       wind_direction: 225.0
-    refinement_levels:
+    refinement_levels:             # Numbers are for upstream, downstream, lateral and vertical length in turbine diameters
       - [ 7.0, 12.0, 7.0, 7.0 ]
       - [ 5.0, 10.0, 5.0, 5.0 ]
       - [ 3.0, 6.0, 3.0, 3.0 ]
-#      - [ 1.5, 3.0, 1.2, 1.2 ]
-
 ```
 
 ## Plot mesh refinement
-**Plots the mesh refinement levels**
+**[plotmesh.py](plotmesh.py): Plots the mesh refinement levels**
 
 ## Plot FAST output
-**Plots FAST output**
+**[plotFAST.py](plotFAST.py): Plots FAST output**
