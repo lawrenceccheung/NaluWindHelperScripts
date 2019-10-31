@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import math
+import numpy as np
 import yaml
 import sys
 import matplotlib.pyplot    as plt
@@ -29,23 +30,24 @@ x1               = meshvertices[1]
 # -- mesh dimensions --
 meshdimensions   = yamldata['nalu_abl_mesh']['mesh_dimensions']
 
-# -- turbine locations --
-turbineXY  = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_locations']
-turbineDin = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_diameters']
-turbineHHin= yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_heights']
-# make sure turbineD is the right size
-if isinstance(turbineDin, list):  turbineD = turbineDin
-else:                             turbineD = [turbineDin]*len(turbineXY)
-# make sure turbineHH is the right size
-if isinstance(turbineHHin, list):  turbineHH = turbineHHin
-else:                              turbineHH = [turbineHHin]*len(turbineXY)
+if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
+    # -- turbine locations --
+    turbineXY  = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_locations']
+    turbineDin = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_diameters']
+    turbineHHin= yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_heights']
+    # make sure turbineD is the right size
+    if isinstance(turbineDin, list):  turbineD = turbineDin
+    else:                             turbineD = [turbineDin]*len(turbineXY)
+    # make sure turbineHH is the right size
+    if isinstance(turbineHHin, list):  turbineHH = turbineHHin
+    else:                              turbineHH = [turbineHHin]*len(turbineXY)
 
-# -- Wind direction --
-orienttype = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['type']
-winddir    = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['wind_direction']
+    # -- Wind direction --
+    orienttype = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['type']
+    winddir    = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['wind_direction']
 
-# -- refinement boxes --
-refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
+    # -- refinement boxes --
+    refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
 
 #print refineboxes
 
@@ -125,24 +127,90 @@ def plotbasemeshXY(p0, p1, meshdimensions):
     currentAxis.add_patch(rect)
     return
 
+# Plot a single mesh slice
+def plotslicemesh(axis1, axis2, origin, grid_lengths):
+    # Construct the lines to plot
+    # axis1 and axis2 are the lines
+    p1=np.array(origin)
+    p2=p1+axis1*grid_lengths[0]
+    p3=p2+axis2*grid_lengths[1]
+    p4=p1+axis2*grid_lengths[1]
+    p5=p1
+    x=[p1[0], p2[0], p3[0], p4[0], p5[0]]
+    y=[p1[1], p2[1], p3[1], p4[1], p5[1]]
+    #print p1,p2,p3,p4,p5
+    plt.fill(x,y, fill=False, hatch='\\\///', lw=0)
+    plt.plot(x,y, 'k--', linewidth=0.25)
+    return
+
+# Plot a single mesh slice
+def plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
+                     num_planes, plane_offsets):
+    if (num_planes != len(plane_offsets)):
+        # Some wrong input here
+        print("num_planes != len(plane_offsets)")
+        sys.exit(1)
+    for poffset in plane_offsets:
+        neworigin=np.array(origin)+poffset*np.array(axis3)
+        plotslicemesh(axis1, axis2, neworigin, grid_lengths)
+
+    return
+
+def plotwinddirarrow(p0, p1, winddir):
+    # get the mesh center
+    center=0.5*(np.array(p0)+np.array(p1))
+    # Get the theta angle
+    theta = (270.0-winddir)*math.pi/180.0
+    
+    return
+
+# Initialize and plot the base mesh
+# ---------------------------------
 fig, ax = plt.subplots(1)
 plotbasemeshXY(x0, x1, meshdimensions)
 
-# Plot the refinement boxes
-refinecolors=['c','y','g','r']
-for iturb, turb in enumerate(turbineXY):
-    for ibox, box in enumerate(refineboxes):
-        boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
-        plotRefineBox(boxXY, refinecolors[ibox])
+# Plot the local mesh refinement
+# ---------------------------------
+if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
+    # Plot the refinement boxes
+    refinecolors=['c','y','g','r']
+    for iturb, turb in enumerate(turbineXY):
+        for ibox, box in enumerate(refineboxes):
+            boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
+            plotRefineBox(boxXY, refinecolors[ibox])
 
 
-# Plot the turbines
-for iturb, turb in enumerate(turbineXY):
-    turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
-    plotXYpoints(turbpts)
+    # Plot the turbines
+    for iturb, turb in enumerate(turbineXY):
+        turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
+        plotXYpoints(turbpts)
+else:
+    print "No local mesh refinement"
 
 
-#plt.xlim([-10, x1[0]*1.1])
-#plt.ylim([-10, x1[1]*1.1])
+# Plot the mesh slices
+# ---------------------------------
+if 'slice_mesh' in yamldata:
+    print "Going through slices"
+    allslices=yamldata['slice_mesh']['slices']
+    for slice in allslices:
+        axis1        = np.array(slice['axis1'])
+        axis2        = np.array(slice['axis2'])
+        axis3        = np.array(slice['axis3'])
+        origin       = slice['origin']
+        grid_lengths = slice['grid_lengths']
+        num_planes   = slice['num_planes']
+        plane_offsets= slice['plane_offsets']
+        # normalize some quantities
+        axis1        = axis1/np.linalg.norm(axis1)
+        axis2        = axis2/np.linalg.norm(axis2)
+        axis3        = axis3/np.linalg.norm(axis3)
+        plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
+                         num_planes, plane_offsets)
+else:
+    print "No slicemesh specification"
+    
+
 plt.axis("square")
 plt.show()
+
