@@ -139,8 +139,8 @@ def plotslicemesh(axis1, axis2, origin, grid_lengths):
     x=[p1[0], p2[0], p3[0], p4[0], p5[0]]
     y=[p1[1], p2[1], p3[1], p4[1], p5[1]]
     #print p1,p2,p3,p4,p5
-    plt.fill(x,y, fill=False, hatch='\\\///', lw=0)
-    plt.plot(x,y, 'k--', linewidth=0.25)
+    plt.fill(x,y, fill=False, hatch='\\\///', lw=0, edgecolor='w')
+    plt.plot(x,y, color='k', linestyle='--', linewidth=1.5)
     return
 
 # Plot a single mesh slice
@@ -156,12 +156,18 @@ def plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths,
 
     return
 
+# Plot the arrow to indicate wind direction
 def plotwinddirarrow(p0, p1, winddir):
     # get the mesh center
     center=0.5*(np.array(p0)+np.array(p1))
+    # get the dimensions of the sides
+    length=0.5*((p1[0]-p0[0]) + (p1[1]-p0[1]))
+    alength=0.1*length
     # Get the theta angle
     theta = (270.0-winddir)*math.pi/180.0
-    
+    dx = alength*math.cos(theta)
+    dy = alength*math.sin(theta)
+    plt.arrow(center[0], center[1], dx, dy, width=0.05*alength)
     return
 
 # Initialize and plot the base mesh
@@ -184,6 +190,8 @@ if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
     for iturb, turb in enumerate(turbineXY):
         turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
         plotXYpoints(turbpts)
+
+    plotwinddirarrow(x0, x1, winddir)
 else:
     print "No local mesh refinement"
 

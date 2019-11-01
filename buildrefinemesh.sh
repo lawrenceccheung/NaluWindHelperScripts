@@ -8,6 +8,79 @@ RUNNALUPREPROC=true
 RUNREFINE=true
 NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
 
+# Help for this script
+function help() {
+cat <<EOF
+Usage: 
+  $1 YAMLFILE [OPTIONS]
+Arguments
+  YAMFILE   : a yaml file containing the mesh definitions
+
+Options: 
+  -o|--output-mesh OUTFILE  : Output filename (default: $outputmesh)
+  -n|--ncores      NPU      : Number of cores to use (default: $NCORES)
+  --no-createmesh           : Do not create basic mesh
+  --no-preproc              : Do not use the preprocessor to define mesh refinem ent zones
+  --no-refine               : Do not use mesh_adapt to refine mesh
+  -h|--help                 : This help file
+EOF
+}
+
+# For arg parsing, see 
+# https://medium.com/@Drew_Stokes/bash-argument-parsing-54f3b81a6a8f
+PARAMS=""
+while (( "$#" )); do
+    case "$1" in
+	-o|--output-mesh)
+	    outputmesh=$2
+	    shift 2
+	    ;;
+	-n|--ncores) 
+	    NCORES=$2
+	    shift 2
+	    ;;
+	--no-createmesh)
+	    CREATEMESH=false
+	    shift 
+	    ;;
+	--no-preproc) 
+	    RUNNALUPREPROC=false
+	    shift 
+	    ;;
+	--no-refine)
+	    RUNREFINE=false
+	    shift 
+	    ;;
+	-h|--help)
+	    help $0
+	    exit
+	    ;;
+	--) # end argument parsing
+	    shift
+	    break
+	    ;;
+	-*|--*=) # unsupported flags
+	    echo "Error: Unsupported flag $1" >&2
+	    exit 1
+	    ;;
+	*) # preserve positional arguments
+	    PARAMS="$PARAMS $1"
+	    shift
+	    ;;
+    esac
+done # set positional arguments in their proper place
+eval set -- "$PARAMS"
+yamlfile=$1
+
+echo "yamlfile   = $yamlfile"
+echo "outputmesh = $outputmesh"
+echo "NCORES     = $NCORES"
+echo "CREATEMESH = $CREATEMESH"
+echo "RUNNALUPREPROC=$RUNNALUPREPROC"
+echo "RUNREFINE  = $RUNREFINE"
+#exit 
+
+
 # Load all of the stuff required to get Nalu up and running
 echo "Loading modules"
 module purge
