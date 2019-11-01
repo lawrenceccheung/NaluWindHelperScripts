@@ -90,8 +90,8 @@ def getTurbXYPoints(turbXY, D, winddir):
 def getRefineBoxXY(turbXY, turbD, refineDim, windDir):
     x1 = turbXY[0]-refineDim[0]*turbD
     x2 = turbXY[0]+refineDim[1]*turbD
-    y1 = turbXY[1]-0.5*refineDim[2]*turbD
-    y2 = turbXY[1]+0.5*refineDim[2]*turbD
+    y1 = turbXY[1]-1.0*refineDim[2]*turbD
+    y2 = turbXY[1]+1.0*refineDim[2]*turbD
 
     XYbox = [[x1, y1, 0.0], [x1, y2, 0.0], [x2, y2, 0.0], [x2, y1, 0.0]]
 

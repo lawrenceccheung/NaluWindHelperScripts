@@ -13,6 +13,7 @@ function help() {
 cat <<EOF
 Usage: 
   $1 YAMLFILE [OPTIONS]
+
 Arguments
   YAMFILE   : a yaml file containing the mesh definitions
 
@@ -26,8 +27,9 @@ Options:
 EOF
 }
 
-# For arg parsing, see 
-# https://medium.com/@Drew_Stokes/bash-argument-parsing-54f3b81a6a8f
+# Parse the arguments and options
+# --------------------------
+# For arg parsing details/example, see https://medium.com/@Drew_Stokes/bash-argument-parsing-54f3b81a6a8f
 PARAMS=""
 while (( "$#" )); do
     case "$1" in
@@ -158,7 +160,11 @@ if $RUNREFINE; then
 	echo "------------------"
 	echo "STAGE $i REFINEMENT: $meshprev --> $meshnext"	
 	echo "------------------"
-	if [ $i -eq 1 ]; then
+	if [ $i -eq 1 ] && [ $i -eq $Nrefinement ] ; then
+	    # First refinement level
+	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" --ioss_write_options=\"large,auto-join:yes\" "
+	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes" --ioss_write_options="large,auto-join:yes"
+	elif [ $i -eq 1 ]; then
 	    # First refinement level
 	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" "
 	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes"
@@ -166,7 +172,6 @@ if $RUNREFINE; then
 	    # Last refinement level
 	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options=\"large,auto-join:yes\""
 	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options="large,auto-join:yes"
-	    cp -av $meshnext $outputmesh
 	else
 	    # Normal refinement level
 	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile "
@@ -174,11 +179,17 @@ if $RUNREFINE; then
 	fi
 	echo
     done
+    
+    # copy the mesh to the final output mesh
+    cp -av $meshnext $outputmesh
 
     # Clean up
     rm -rf ${tempmesh}*.e*
     
     # 
-    echo "Don't forget:"
-    echo "Use `ncdump -v eb_names $outputmesh` to determine the mesh blocks"
+    #echo "Don't forget:"
+    #echo "Use \"ncdump -v eb_names $outputmesh\" to determine the mesh blocks"
+    echo
+    echo "New mesh blocks: "
+    ncdump -v eb_names $outputmesh | sed -ne '/eb_names =/,$ p'
 fi
