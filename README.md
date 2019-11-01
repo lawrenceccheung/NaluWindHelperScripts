@@ -27,17 +27,23 @@ If you include the `slice_mesh` section in the YAML file, then it will also incl
 ## Mesh refinement script
 **[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
 #### Usage
-Edit the beginning of the file with the input variables (Change this later to be more flexible)
-```bash
-yamlfile=abl_preprocess.yaml
-outputmesh=refinedmesh.exo
-NCORES=8
-CREATEMESH=true
-RUNNALUPREPROC=true
-RUNREFINE=true
-NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
+
 ```
-The variable `yamlfile` should point to a yaml input file like this:  
+buildrefinemesh.sh YAMLFILE [OPTIONS]
+
+Arguments
+  YAMFILE   : a yaml file containing the mesh definitions
+
+Options: 
+  -o|--output-mesh OUTFILE  : Output filename (default: refinedmesh.exo)
+  -n|--ncores      NPU      : Number of cores to use (default: 8)
+  --no-createmesh           : Do not create basic mesh
+  --no-preproc              : Do not use the preprocessor to define mesh refinem ent zones
+  --no-refine               : Do not use mesh_adapt to refine mesh
+  -h|--help                 : This help file
+
+```
+The argument `YAMLFILE` should point to a yaml input file like this:  
 ```yaml
 nalu_abl_mesh:
   output_db: mesh_abl.exo
@@ -87,9 +93,9 @@ nalu_preprocess:
       - [ 3.0, 6.0, 3.0, 3.0 ]
 ```
 
-When you execute the script,
+When you execute the script, for instance
 ```bash
-$ ./buildrefinemesh.sh
+$ ./buildrefinemesh.sh testmesh.yaml -o testmesh.exo
 ```
 the first stage should be the mesh creation part
 ```
@@ -139,7 +145,19 @@ INFO: ioss_read_options=auto-decomp:yes ioss_write_options=
 PerceptMesh:: opening tempmesh0.e
 
 Using decomposition method 'RIB' on 8 processors.
+```
 
+At the very end, it will copy over the final mesh and report the new mesh blocks which are included:
+```
+‘tempmesh2.e’ -> ‘testmesh.exo’
+
+New mesh blocks: 
+ eb_names =
+  "fluid_part",
+  "fluid_part.pyramid_5._urpconv",
+  "fluid_part.tetrahedron_4._urpconv",
+  "fluid_part.pyramid_5._urpconv.Tetrahedron_4._urpconv" ;
+}
 ```
 
 ## Plot FAST output
