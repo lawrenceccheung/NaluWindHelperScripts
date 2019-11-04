@@ -6,6 +6,7 @@ NCORES=8
 CREATEMESH=true
 RUNNALUPREPROC=true
 RUNREFINE=true
+CLUSTERARGS=""
 NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
 
 # Help for this script
@@ -23,6 +24,7 @@ Options:
   --no-createmesh           : Do not create basic mesh
   --no-preproc              : Do not use the preprocessor to define mesh refinem ent zones
   --no-refine               : Do not use mesh_adapt to refine mesh
+  --on-cluster              : Job is being run on cluster like skybridge, chama, etc.
   -h|--help                 : This help file
 EOF
 }
@@ -53,6 +55,10 @@ while (( "$#" )); do
 	    RUNREFINE=false
 	    shift 
 	    ;;
+	--on-cluster)
+	    CLUSTERARGS="--bind-to core --npernode 16"
+	    shift 
+	    ;;
 	-h|--help)
 	    help $0
 	    exit
@@ -80,6 +86,7 @@ echo "NCORES     = $NCORES"
 echo "CREATEMESH = $CREATEMESH"
 echo "RUNNALUPREPROC=$RUNNALUPREPROC"
 echo "RUNREFINE  = $RUNREFINE"
+echo "CLUSTERARGS= $CLUSTERARGS"
 #exit 
 
 
@@ -162,20 +169,20 @@ if $RUNREFINE; then
 	echo "------------------"
 	if [ $i -eq 1 ] && [ $i -eq $Nrefinement ] ; then
 	    # First refinement level
-	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" --ioss_write_options=\"large,auto-join:yes\" "
-	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes" --ioss_write_options="large,auto-join:yes"
+	    echo "mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" --ioss_write_options=\"large,auto-join:yes\" "
+	    mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes" --ioss_write_options="large,auto-join:yes"
 	elif [ $i -eq 1 ]; then
 	    # First refinement level
-	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" "
-	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes"
+	    echo "mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options=\"auto-decomp:yes\" "
+	    mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile --ioss_read_options="auto-decomp:yes"
 	elif [ $i -eq $Nrefinement ]; then
 	    # Last refinement level
-	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options=\"large,auto-join:yes\""
-	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options="large,auto-join:yes"
+	    echo "mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options=\"large,auto-join:yes\""
+	    mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile  --ioss_write_options="large,auto-join:yes"
 	else
 	    # Normal refinement level
-	    echo "mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile "
-	    mpirun -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile 
+	    echo "mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile "
+	    mpirun $CLUSTERARGS -n $NCORES mesh_adapt --refine=DEFAULT --input_mesh=$meshprev --output_mesh=$meshnext --RAR_info=$adaptfile 
 	fi
 	echo
     done
@@ -191,5 +198,6 @@ if $RUNREFINE; then
     #echo "Use \"ncdump -v eb_names $outputmesh\" to determine the mesh blocks"
     echo
     echo "New mesh blocks: "
-    ncdump -v eb_names $outputmesh | sed -ne '/eb_names =/,$ p'
+    ncdump -v eb_names $outputmesh | sed -ne '/eb_names =/,$ p' |sed 's/pyramid_5._urpconv.Tetrahedron_4._urpconv/pyramid_5._urpconv.Tetrahedron_4._urpconv (IGNORE THIS ONE)/g'
+
 fi
