@@ -78,6 +78,12 @@ while (( "$#" )); do
     esac
 done # set positional arguments in their proper place
 eval set -- "$PARAMS"
+
+# Check the number of arguments
+if [ $# -lt 1 ]; then
+    help $0
+    exit 1
+fi
 yamlfile=$1
 
 echo "yamlfile   = $yamlfile"
