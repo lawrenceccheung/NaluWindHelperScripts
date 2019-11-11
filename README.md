@@ -5,6 +5,7 @@ Scripts to help with Nalu-Wind
 **Contents**
 - [Plot mesh script](#plot-mesh-refinement): [plotmesh.py](plotmesh.py)
 - [Mesh refinement script](#mesh-refinement-script): [buildrefinemesh.sh](buildrefinemesh.sh)
+- [Slice mesh utility](#slice-mesh-utility): [slicemesh.sh](slicemesh.sh)
 - [Plot FAST output script](#plot-fast-output): [plotFAST.py](plotFAST.py)
 
 ## Plot mesh refinement
