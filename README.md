@@ -160,6 +160,131 @@ New mesh blocks:
 }
 ```
 
+## Slice mesh utility
+**[slicemesh.sh](slicemesh.sh): Creates the slice geometry for a mesh**  
+#### Usage
+```bash
+./slicemesh.sh MESHYAMLFILE [OPTIONS]
+```
+where MESHYAMLFILE is the yaml file containing the slice mesh parameters.
+
+Optional Arguments:
+```bash
+  -y|--yaml-output YAMLFILE    Print out the corresponding yaml inputs needed to include the slice mesh 
+                               output during the simulation.  YAMLFILE is the main simulation yamlfile
+  -v|--extra-vars  VARLIST     An extra list of variables to include when writing out the sliced meshes.
+                               VARLIST is of the form "var1:N var2:N ..." where var1, var2, are the
+                               variable names, and N is the number of components for that variable
+```
+
+The MESHYAMLFILE input file defining the slices to take:
+```yaml
+slice_mesh:
+  output_db: temp.exo # sliceplanes.exo
+
+  slices:
+    # X-Y plane
+    - axis1: [1.0, 0.0, 0.0]
+      axis2: [0.0, 1.0, 0.0]
+      axis3: [0.0, 0.0, 1.0]
+      origin: [0.0, 0.0, 0.0]
+      grid_lengths: [2500.0, 2500.0]
+      grid_dx: [4.0, 4.0]
+      num_planes: 1
+      plane_offsets: [0.0]
+      part_name_prefix: turbineHH
+
+    # Y-Z plane 
+    - axis1: [1.0, 1.0, 0.0]
+      axis2: [0.0, 0.0, 1.0]
+      axis3: [-1,  1.0, 0.0]
+      origin: [0.0, 00, -100.0]
+      grid_lengths: [3000.0, 200.0]
+      grid_dx: [4.0, 4.0]
+      num_planes: 1
+      plane_offsets: [0.0]
+      part_name_prefix: turbineSlice2
+
+```
+
+If you execute it with the input files:
+```bash
+$ slicemesh.sh mesh1.yaml 
+yamlfile    = mesh1.yaml
+simyamlfile = 
+extravars   = 
+Loading modules
+Output mesh name = temp.exo
+Slice Mesh Generation Utility
+Input file: mesh1.yaml
+Loading slice inputs... 
+Initializing slices... 
+Slice: Registering parts to meta data: 
+  -  turbineHH_1
+Slice: Registering parts to meta data: 
+  -  turbineSlice2_1
+Generating slices for: turbineHH
+Creating nodes... 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+Creating elements... 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+Generating coordinate field
+ - turbineHH_1
+Generating slices for: turbineSlice2
+Creating nodes... 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+Creating elements... 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+Generating coordinate field
+ - turbineSlice2_1
+Writing mesh to file: temp.exo
+
+Memory usage: Avg:  156.043 MB; Min:  156.043 MB; Max:  156.043 MB
+```
+
+If you execute it with the `-y` option, like `slicemesh.sh
+mesh1test.yaml -y alm_simulation.yaml`, then some additional output will be generated:
+```bash
+# === Auto-generated YAML below ======
+
+# Goes under [realms:]
+- name: ioRealm
+  mesh: temp.exo
+  type: input_output
+  automatic_decomposition_type: rcb
+
+  field_registration:
+    specifications:
+    - field_name: velocity_slice
+      target_name: &fieldreg [ turbineHH_1, turbineSlice2_1 ]
+      field_size: 3
+      field_type: node_rank
+  output:
+    output_data_base_name: ./sliceDataInstantaneous/temp.exo
+    output_frequency: 1
+    output_node_set: no
+    output_variables:
+    - velocity_slice
+transfers:
+- name: turbineHH_1
+  type: geometric
+  realm_pair: [realm_1, ioRealm]
+  to_target_name: turbineHH_1
+  from_target_name: ['fluid_part', 'fluid_part.Pyramid_5._urpconv', 'fluid_part.Tetrahedron_4._urpconv']
+  objective: input_output
+  transfer_variables:
+  - [velocity, velocity_slice]
+- name: turbineSlice2_1
+  type: geometric
+  realm_pair: [realm_1, ioRealm]
+  to_target_name: turbineSlice2_1
+  from_target_name: ['fluid_part', 'fluid_part.Pyramid_5._urpconv', 'fluid_part.Tetrahedron_4._urpconv']
+  objective: input_output
+  transfer_variables:
+  - [velocity, velocity_slice]
+
+# === End auto-generated YAML ======
+```
+
+These yaml parameters can be added to `alm_simulation.yaml` to extract
+the slice during simulations.
+
 ## Plot FAST output
 **[plotFAST.py](plotFAST.py): Plots FAST output**  
 #### Usage  

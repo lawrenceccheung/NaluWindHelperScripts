@@ -9,8 +9,20 @@ NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
 # Help for this script
 function help() {
 cat <<EOF
+Creates a mesh slice 
+
 Usage: 
-  $1 YAMLFILE [OPTIONS]
+  $1 MESHYAMLFILE [OPTIONS]
+where
+  MESHYAMLFILE is the yaml file containing the slice mesh parameters.
+
+Optional Arguments:
+  -y|--yaml-output YAMLFILE    Print out the corresponding yaml inputs needed to include the slice mesh 
+                               output during the simulation.  YAMLFILE is the main simulation yamlfile
+  -v|--extra-vars  VARLIST     An extra list of variables to include when writing out the sliced meshes.
+                               VARLIST is of the form "var1:N var2:N ..." where var1, var2, are the
+                               variable names, and N is the number of components for that variable
+                               Default: velocity (3 components) is always included, no need repeat it
 EOF
 }
 
@@ -100,7 +112,7 @@ DOC`
 echo "Output mesh name = $slicemeshname"
 
 
-#TEMPCOMMENT  $NALUUTILDIR/slice_mesh -i $yamlfile
+$NALUUTILDIR/slice_mesh -i $yamlfile
 
 surfacenames=`ncdump -v eb_names $slicemeshname | sed -ne '/eb_names =/,$ p' | sed -e '1d' -e 's/}//g' -e 's/,//g' -e 's/\;//g' -e 's/\"//g'`
 echo $surfacenames
@@ -194,6 +206,14 @@ cat <<EOF
     output_variables:
     - velocity_slice
 EOF
+# Add any extra field registration
+for var in $extravars; do
+    varname=`echo "$var"| awk 'BEGIN{ FS=":" } {print $1}' `
+    varslicename="${varname}_slice"
+    cat<<EOF
+    - $varslicename
+EOF
+done
 
 # Write out the transfers
 cat <<EOF
