@@ -298,3 +298,25 @@ Output:
 
 It's pretty self-explanatory.  Check the variables on the left you would like to plot, and hit `Plot`.
 If the output files get updated, hit `Reload data` to reread the files from disk.
+
+## Backup and write a restart YAML file
+**[restartbackupnalu.py](restartbackupnalu.py): Backups up a simulation from a YAML file**
+#### Usage
+```bash
+usage: restartbackupnalu.py [-h] [--dobackup] [--Nsteps NSTEPS]
+                            [--suffix SUFFIX]
+                            yamlfile [yamlfile ...]
+
+Create a restart YAML file for Nalu.
+
+positional arguments:
+  yamlfile
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --dobackup       Backup files [default=False]
+  --Nsteps NSTEPS  Run another NSTEPS
+  --suffix SUFFIX  Suffix to attach to backup files [default is date/time
+                   based suffix]
+
+```
