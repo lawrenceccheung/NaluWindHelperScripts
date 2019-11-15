@@ -7,6 +7,7 @@ Scripts to help with Nalu-Wind
 - [Mesh refinement script](#mesh-refinement-script): [buildrefinemesh.sh](buildrefinemesh.sh)
 - [Slice mesh utility](#slice-mesh-utility): [slicemesh.sh](slicemesh.sh)
 - [Plot FAST output script](#plot-fast-output): [plotFAST.py](plotFAST.py)
+- [Backup and write a restart YAML file](#backup-and-write-a-restart-yaml-file): [restartbackupnalu.py](restartbackupnalu.py)
 
 ## Plot mesh refinement
 **[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
