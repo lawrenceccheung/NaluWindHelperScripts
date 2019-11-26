@@ -196,8 +196,8 @@ def plotLineOfSite(tip, tail, npoints):
 
 def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetspacings=[]):
     # construct the line of points
-    dx=(np.array(edge1))/(edge1N-1)
-    dy=(np.array(edge2))/(edge2N-1)
+    dx=(np.array(edge1))/float(edge1N-1)
+    dy=(np.array(edge2))/float(edge2N-1)
     x=[]
     y=[]
     z=[]
@@ -262,13 +262,13 @@ if has_preprocess:
 
         plotwinddirarrow(x0, x1, winddir)
     else:
-        print "No local mesh refinement"
+        print("No local mesh refinement")
 
 
 # Plot the mesh slices
 # ---------------------------------
 if 'slice_mesh' in yamldata:
-    print "Going through slices"
+    print("Going through slices")
     allslices=yamldata['slice_mesh']['slices']
     for slice in allslices:
         axis1        = np.array(slice['axis1'])
@@ -285,7 +285,7 @@ if 'slice_mesh' in yamldata:
         plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
                          num_planes, plane_offsets)
 else:
-    print "No slicemesh specification"
+    print("No slicemesh specification")
 
 # Load the realms YAML file (if necessary)
 # ---------------------------------    
