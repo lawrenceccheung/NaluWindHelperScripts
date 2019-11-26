@@ -182,7 +182,7 @@ def plotwinddirarrow(p0, p1, winddir):
 
 def plotLineOfSite(tip, tail, npoints):
     # construct the line of points
-    dx=(np.array(tip)-np.array(tail))/(npoints-1)
+    dx=(np.array(tip)-np.array(tail))/float(npoints-1)
     x=[]
     y=[]
     z=[]
