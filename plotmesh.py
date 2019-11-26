@@ -9,21 +9,29 @@ from matplotlib.patches     import Rectangle
 import argparse
 
 # Handle arguments
+parser = argparse.ArgumentParser(description='Plot mesh refinement and probe locations')
+parser.add_argument('YAMLFILE',  nargs='+',   help="Parse this yaml file for mesh and refinement information")
+parser.add_argument('--almyaml', default='',  help="Parse ALMYAML for the turbine and probe information")
+args=parser.parse_args()
 
-#yamlfile='abl_preprocess.yaml'
-if len(sys.argv)>1:
-    yamlfile=sys.argv[1]
-else:
-    print 'ARGUMENT REQUIRED'
-    print ' Usage: %s ABLFILE'%sys.argv[0]
-    sys.exit(1)
+
+yamlfile=args.YAMLFILE[0]
+almyamlfile=args.almyaml
+# #yamlfile='abl_preprocess.yaml'
+# if len(sys.argv)>1:
+#     yamlfile=sys.argv[1]
+# else:
+#     print 'ARGUMENT REQUIRED'
+#     print ' Usage: %s ABLFILE'%sys.argv[0]
+#     sys.exit(1)
+
+
 
 with open(yamlfile) as stream:
     try:
         yamldata=yaml.safe_load(stream)
     except yaml.YAMLError as exc:
         print(exc)
-
 
 
 if 'nalu_preprocess' in yamldata:
@@ -278,7 +286,15 @@ if 'slice_mesh' in yamldata:
                          num_planes, plane_offsets)
 else:
     print "No slicemesh specification"
-    
+
+# Load the realms YAML file (if necessary)
+# ---------------------------------    
+if len(almyamlfile)>0:
+    with open(almyamlfile) as stream:
+        try:
+            yamldata=yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 
 # Plot everything in realms
 # ---------------------------------
