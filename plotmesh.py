@@ -12,11 +12,13 @@ import argparse
 parser = argparse.ArgumentParser(description='Plot mesh refinement and probe locations')
 parser.add_argument('YAMLFILE',  nargs='+',   help="Parse this yaml file for mesh and refinement information")
 parser.add_argument('--almyaml', default='',  help="Parse ALMYAML for the turbine and probe information")
+parser.add_argument('--slicemeshyaml', default='',  help="Parse SLICEMESHYAML for the slice_mesh specifications")
 args=parser.parse_args()
 
 
 yamlfile=args.YAMLFILE[0]
 almyamlfile=args.almyaml
+slicemeshyaml=args.slicemeshyaml
 # #yamlfile='abl_preprocess.yaml'
 # if len(sys.argv)>1:
 #     yamlfile=sys.argv[1]
@@ -267,9 +269,18 @@ if has_preprocess:
 
 # Plot the mesh slices
 # ---------------------------------
-if 'slice_mesh' in yamldata:
+if len(slicemeshyaml)>0:
+    with open(slicemeshyaml) as stream:
+        try:
+            SMyamldata=yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+else:
+    SMyamldata = yamldata
+
+if 'slice_mesh' in SMyamldata:
     print("Going through slices")
-    allslices=yamldata['slice_mesh']['slices']
+    allslices=SMyamldata['slice_mesh']['slices']
     for slice in allslices:
         axis1        = np.array(slice['axis1'])
         axis2        = np.array(slice['axis2'])
@@ -285,7 +296,7 @@ if 'slice_mesh' in yamldata:
         plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
                          num_planes, plane_offsets)
 else:
-    print("No slicemesh specification")
+    print("No slice_mesh specification")
 
 # Load the realms YAML file (if necessary)
 # ---------------------------------    
