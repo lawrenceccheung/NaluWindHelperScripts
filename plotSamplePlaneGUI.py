@@ -207,7 +207,7 @@ def main():
 
     # Handle arguments
     parser = argparse.ArgumentParser(description='Plot sample mesh')
-    parser.add_argument('PLANEFILE',  nargs='*',  help="Plot this sample plane")
+    parser.add_argument('PLANEFILE',  nargs='*',  help="Plot these sample plane(s)")
     parser.add_argument('--nogui',    action='store_true', 
                         help="Use command line only [default=False]")
     parser.set_defaults(nogui=False)
@@ -220,7 +220,14 @@ def main():
     nogui     = args.nogui
     planenum  = int(args.planenum)
     plotcol   = int(args.varnum)
-    
+
+    # Need at least one input
+    if (len(filelist)<1):
+        print("ERROR: At least one argument expected")
+        print("")
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     # Choose gui option or not
     if nogui:
         if (len(filelist)>1):
