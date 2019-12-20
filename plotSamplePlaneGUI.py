@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from itertools import cycle
 import argparse
 
-import sys
+import sys, os
 if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
@@ -85,6 +85,7 @@ def on_key_event(event):
         _plotdata()
 
 def _quit():
+    global center
     center.quit()     # stops mainloop
     center.destroy()  # this is necessary on Windows to prevent
                       # Fatal Python Error: PyEval_RestoreThread: NULL tstate
@@ -153,7 +154,7 @@ def _plotdata():
 
 # Run all of the gui elements
 def doGUI():
-    global fig, canvas, plotvar, planen, toolbar, plotfile
+    global fig, canvas, plotvar, planen, toolbar, plotfile, center
     # GUI stuff
     top  = Tk.Tk()
     #top.geometry("800x400")
@@ -175,9 +176,10 @@ def doGUI():
     canvas.mpl_connect('key_press_event', on_key_event)
 
     # -- Set up radio bars --
+    filelist2 = [os.path.basename(x) for x in filelist]
     allfiles_pane = ScrollableFrame(leftframe, bg='#444444')
     allfiles_pane.pack(expand="true", fill="both")
-    plotfile = RadioBbar(allfiles_pane.interior, filelist, "Plane files")
+    plotfile = RadioBbar(allfiles_pane.interior, filelist2, "Plane files")
     plotfile.pack(side=Tk.TOP)
     
     allvars_pane = ScrollableFrame(leftframe, bg='#444444')
