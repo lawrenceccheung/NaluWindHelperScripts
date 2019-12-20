@@ -8,6 +8,7 @@ Scripts to help with Nalu-Wind
 - [Slice mesh utility](#slice-mesh-utility): [slicemesh.sh](slicemesh.sh)
 - [Plot FAST output script](#plot-fast-output): [plotFAST.py](plotFAST.py)
 - [Backup and write a restart YAML file](#backup-and-write-a-restart-yaml-file): [restartbackupnalu.py](restartbackupnalu.py)
+- [Plot sample planes](#plot-sample-planes): [plotSamplePlaneGUI.py](plotSamplePlaneGUI.py)
 
 ## Plot mesh refinement
 **[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
@@ -303,7 +304,7 @@ If the output files get updated, hit `Reload data` to reread the files from disk
 ## Backup and write a restart YAML file
 **[restartbackupnalu.py](restartbackupnalu.py): Backups up a simulation from a YAML file**
 #### Usage
-```bash
+```
 usage: restartbackupnalu.py [-h] [--dobackup] [--Nsteps NSTEPS]
                             [--suffix SUFFIX]
                             yamlfile [yamlfile ...]
@@ -321,3 +322,55 @@ optional arguments:
                    based suffix]
 
 ```
+
+## Plot sample planes
+*Sample plane output currently available in Lawrence Cheung's branch of Nalu-Wind*
+
+#### Usage
+```
+usage: plotSamplePlaneGUI.py [-h] [--nogui] [--planenum PLANENUM]
+                             [--varnum VARNUM]
+                             [PLANEFILE [PLANEFILE ...]]
+
+Plot sample mesh
+
+positional arguments:
+  PLANEFILE            Plot this sample plane
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --nogui              Use command line only [default=False]
+  --planenum PLANENUM  Plot this plane number
+  --varnum VARNUM      Plot this variable number
+```
+
+For example, let's say you created a set of planes with the following
+specifications:
+```yaml
+   specifications:
+    - name: probe_surface
+      from_target_part: Unspecified-2-HEX
+      plane_specifications:
+        - name: Probes/Plane3
+          edge1_numPoints: 21
+          edge2_numPoints: 21
+          corner_coordinates:  [126, -70, -70]
+          edge1_vector:    [0, 140, 0]
+          edge2_vector:    [0, 0, 140]
+          offset_vector:   [1, 0, 0]
+          offset_spacings: [-20, 20]
+      output_variables:
+        - field_name: velocity
+          field_size: 3
+```
+
+These planes can be plotted by loading them in `plotSamplePlaneGUI.py`:
+```bash
+$ plotSamplePlaneGUI.py Plane3*_1.dat
+```
+
+On the left hand side there are the different plane files, plot
+variables, and plane numbers in each file.  Select the parameters to
+display, and hit the `Plot` button to see something like:  
+
+![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/3404ef5a5bdcb890127278181c317e7b/image.png)
