@@ -18,19 +18,21 @@ def getsuffix(file, default):
     if len(default)>0:
         return default
     else:
-        lastmtime=os.path.getmtime(logfile)
+        lastmtime=os.path.getmtime(file)
         return time.strftime('%Y%m%d-%H-%M-%S', time.localtime(lastmtime))
 
 # Set some options
 doFASTALM=True
 doBackup=False
+doablstatbackup=True
 runNsteps=1000
 
 # Check the command line arguments
 parser = argparse.ArgumentParser(description='Create a restart YAML file for Nalu.')
 parser.add_argument('yamlfile', nargs='+')
 parser.add_argument('--dobackup', action="store_true", help="Backup files [default=False]")
-parser.add_argument('--Nsteps', default=100, help="Run another NSTEPS")
+parser.add_argument('--addNsteps', default=100, help="Add another ADDNSTEPS to the run [default 100]")
+parser.add_argument('--runToNsteps', default=-1, help="Run until RUNTONSTEPS are reached [default is ADDNSTEPS, not RUNTONSTEPS]")
 parser.add_argument('--suffix', default='',  help="Suffix to attach to backup files [default is date/time based suffix]")
 args=parser.parse_args()
 
@@ -38,7 +40,8 @@ args=parser.parse_args()
 # Load the yaml filename
 infile    = args.yamlfile[0]
 doBackup  = args.dobackup
-runNsteps = args.Nsteps
+addNsteps = int(args.addNsteps)
+runToNsteps = int(args.runToNsteps)
 #print(doBackup)
 #print(runNsteps)
 #sys.exit(1)
@@ -62,6 +65,11 @@ cmd="ncdump -v time_whole %s  | sed -ne '/time_whole =/,$ p' | sed -e 's/}//g'  
 restarttime=float(os.popen(cmd%lastrestartfile).read().strip())
 print("# Last written restart file: %s"%lastrestartfile)
 print("# Last restart time:         %f"%restarttime)
+
+if 'actuator' in data['realms'][0]:
+    doFASTALM = True
+else:
+    doFASTALM = False
 
 
 if doFASTALM:
@@ -140,7 +148,17 @@ if doBackup:
         outputfilename=outputname+".%i.%s"%(Nprocs,str(i).zfill(len(repr(Nprocs))))
         print("# Backing up %s -> %s"%(outputfilename,outputfilename+"."+suffix))
         shutil.copy2(outputfilename,outputfilename+"."+suffix)
-    
+
+# Backup the ABL stats
+if doBackup:
+    if 'boundary_layer_statistics' in data['realms'][0]:
+        statsfile=data['realms'][0]['boundary_layer_statistics']['stats_output_file']
+        suffix=getsuffix(statsfile, args.suffix)
+        print("# Backing up the ABL stats file %s -> %s"%
+              (statsfile,statsfile+"."+suffix))
+        shutil.copy2(statsfile, statsfile+"."+suffix)
+
+        
 
 # -- Start changing stuff in the yaml file --
 print("")
@@ -157,7 +175,9 @@ print("# CHANGING Time_Integrators:StandardTimeIntegrator:start_time = %f"%resta
 data['Time_Integrators'][0]['StandardTimeIntegrator']['start_time'] = restarttime
 
 # Change the termination_step_count
-data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count'] = maxstep + runNsteps
+if (runToNsteps>0): finalstep = runToNsteps
+else:               finalstep = maxstep + addNsteps
+data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count'] = finalstep
 
 # Change the restart_time
 data['realms'][0]['restart']['restart_time'] = restarttime
