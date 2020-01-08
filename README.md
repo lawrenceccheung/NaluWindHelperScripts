@@ -27,6 +27,60 @@ Each different colored rectangle represents a halving of the mesh resolution (8x
 If you include the `slice_mesh` section in the YAML file, then it will also include the areas where the sections are being taken, like this:  
 ![image](docs/images/plotmesh_pic2.png)  
 
+The `plotmesh.py` script will also plot the probes in the `data_probes` section.
+If you include the following in your input file
+```yaml
+  data_probes:
+    exodus_name: exoprobe/probes3.exo
+    output_frequency: 1
+    search_method: stk_kdtree
+    search_tolerance: 1.0e-5 #1.0e-3
+    search_expansion_factor: 2.0
+ 
+    specifications:
+    - name: probe_surface
+      from_target_part: Unspecified-2-HEX
+      line_of_site_specifications:        
+        - name: Probe1 # boostProbes2/probes/Probe1
+          number_of_points: 3
+          tip_coordinates:  [10, 0, 0]
+          tail_coordinates:  [20, 0, 0]
+        - name: Probe2 # boostProbes2/probes/Probe2
+          number_of_points: 11
+          tip_coordinates:  [100, 0, 0]
+          tail_coordinates:  [120, 0, 0]
+      plane_specifications:        
+        - name: boostProbes2/planes/p1/Plane1
+          corner_coordinates:  [25, -100, 0]
+          edge1_vector:    [450, 0, 0]
+          edge2_vector:    [0, 200, 0]
+          edge1_numPoints: 51
+          edge2_numPoints: 21
+          #offset_vector:   [0, 0, 1]
+          #offset_spacings: [0, 100]
+        - name: ./Plane2 #boostProbes2/planes/p2/Plane2
+          edge1_numPoints: 31
+          edge2_numPoints: 31
+          corner_coordinates:  [100, 0, 0]
+          edge1_vector:    [10, 0, 0]
+          edge2_vector:    [0, 10, 0]
+          offset_vector:   [1, 0, 0]
+          offset_spacings: [0, 100]
+        - name: boostProbes2/planes/p3/Plane3
+          edge1_numPoints: 21
+          edge2_numPoints: 21
+          corner_coordinates:  [126, -70, -70]
+          edge1_vector:    [0, 140, 0]
+          edge2_vector:    [0, 0, 140]
+          offset_vector:   [1, 0, 0]
+          offset_spacings: [-20, 20]
+      output_variables:
+        - field_name: velocity
+          field_size: 3
+```
+Then the output of `plotmesh.py` will look like:
+![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/58fc49800cdc1e2f7fb514058fc52ddf/image.png)
+
 ## Mesh refinement script
 **[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
 #### Usage
