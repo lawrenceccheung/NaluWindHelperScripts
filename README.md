@@ -9,6 +9,7 @@ Scripts to help with Nalu-Wind
 - [Plot FAST output script](#plot-fast-output): [plotFAST.py](plotFAST.py)
 - [Backup and write a restart YAML file](#backup-and-write-a-restart-yaml-file): [restartbackupnalu.py](restartbackupnalu.py)
 - [Plot sample planes](#plot-sample-planes): [plotSamplePlaneGUI.py](plotSamplePlaneGUI.py)
+- [Convert sample planes to VTK](#convert-sample-planes-to-vtk): [convertSamplePlane2VTK.py](convertSamplePlane2VTK.py)
 
 ## Plot mesh refinement
 **[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
@@ -78,8 +79,9 @@ If you include the following in your input file
         - field_name: velocity
           field_size: 3
 ```
-Then the output of `plotmesh.py` will look like:
-![image](https://gitlab.sandia.gov/uploads/-/system/personal_snippet/542/58fc49800cdc1e2f7fb514058fc52ddf/image.png)
+Then the output of `plotmesh.py` will look like:  
+
+![image](docs/images/plotmesh_pic3.png)  
 
 ## Mesh refinement script
 **[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
@@ -427,3 +429,36 @@ variables, and plane numbers in each file.  Select the parameters to
 display, and hit the `Plot` button to see something like:  
 
 ![image](docs/images/plotSamplePlane_pic1.png)  
+
+## Convert sample planes to VTK
+
+This script converts the text output sample planes to ASCII VTK format.
+
+#### Usage
+```bash
+usage: convertSamplePlane2VTK.py [-h] [--planenum PLANENUM]
+                                 PLANEFILE [PLANEFILE ...]
+
+Convert sample planes to ASCII VTK format
+
+positional arguments:
+  PLANEFILE            Sample plane file(s) to convert
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --planenum PLANENUM  Convert only this offset plane number [default: convert
+                       all planes]
+```
+
+#### Example
+```bash
+$ convertSamplePlane2VTK.py --planenum 0 HHplane_0009[0-3]*.dat
+Converting HHplane_0009000_0.dat
+ -> writing HHplane_0009000_0_plane0.vtk
+Converting HHplane_0009100_0.dat
+ -> writing HHplane_0009100_0_plane0.vtk
+Converting HHplane_0009200_0.dat
+ -> writing HHplane_0009200_0_plane0.vtk
+Converting HHplane_0009300_0.dat
+ -> writing HHplane_0009300_0_plane0.vtk
+```
