@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from itertools import cycle
 import argparse
+import gzip
 
 import sys, os
 if sys.version_info[0] < 3:
@@ -99,9 +100,15 @@ def loadplanefile(filename):
     Numj      = int(max(dat[:,1]))
     Numi      = int(max(dat[:,2]))
     #print numplanes, Numi, Numj
-    with open(filename) as fp:
-        timestring = fp.readline().strip().split()[1]
-        headers    = fp.readline().strip().split()[1:]
+    fname, fext = os.path.splitext(filename)
+    if ((fext == '.gz') or (fext == '.GZ')):
+        with gzip.open(filename) as fp:
+            timestring = fp.readline().strip().split()[1]
+            headers    = fp.readline().strip().split()[1:]
+    else:
+        with open(filename) as fp:
+            timestring = fp.readline().strip().split()[1]
+            headers    = fp.readline().strip().split()[1:]
     time=float(timestring)
     #print time, headers
     fp.close()
@@ -146,6 +153,7 @@ def _plotdata():
     im.autoscale()
     cb=fig.colorbar(im, ax=ax)
     ax.axis('equal')
+    ax.set(ylim=(min(Y[:,0]), max(Y[:,0])))
     ax.set_title('Time = %.3f %s'%(time, headers[plotcol]))
     canvas.draw()
     toolbar.update()
