@@ -9,6 +9,8 @@ import netCDF4 as ncdf
 import numpy as np
 from scipy import interpolate
 import math
+import re
+import os
 
 from numpy import *
 import matplotlib
@@ -108,6 +110,10 @@ class ABLStatsFileClass():
         self.v_h = interpolate.interp1d(self.heights, velocity[:, :, 1], axis=1)
         self.w_h = interpolate.interp1d(self.heights, velocity[:, :, 2], axis=1)
 
+        # Temperature
+        temperature = self.abl_stats.variables['temperature']
+        self.T_h = interpolate.interp1d(self.heights, temperature[:, :], axis=1)
+
     def time_average(self, field='velocity', index=0, times=[0., 100], scalar=False):
         '''
         Provide field time average
@@ -167,7 +173,8 @@ def plotvelocityhistory(data, figax, tlims=[], **kwargs):
     if 'heights' in kwargs: 
         heights=kwargs['heights']
     else:
-        heights = [float(x) for x in hhentry.get().split(',')]
+        #heights = [float(x) for x in hhentry.get().split(',')]
+        heights = [float(x) for x in re.split(r'[,; ]+', hhentry.get())]
     # Loop through all the heights
     for z in heights:
         # Velocity as function of time
@@ -179,6 +186,24 @@ def plotvelocityhistory(data, figax, tlims=[], **kwargs):
     figax.legend(loc='best')
     figax.set_xlabel('Time [s]')
     figax.set_ylabel('Velocity [m/s]')
+    return
+
+def plottemperaturehistory(data, figax, tlims=[], **kwargs):
+    time = data.time
+    # The heights to plot [m]
+    if 'heights' in kwargs: 
+        heights=kwargs['heights']
+    else:
+        #heights = [float(x) for x in hhentry.get().split(',')]
+        heights = [float(x) for x in re.split(r'[,; ]+', hhentry.get())]
+    # Loop through all the heights
+    for z in heights:
+        # Velocity as function of time
+        T = data.T_h(z)
+        figax.plot(time, T, label=r'$T$, z='+str(z)+' [m]')
+    figax.legend(loc='best')
+    figax.set_xlabel('Time [s]')
+    figax.set_ylabel('Temperature [K]')
     return
 
 def plotutauhistory(data, figax, tlims=[], **kwargs):
@@ -344,7 +369,8 @@ def reportABLstats(data, heights=[], tlims=[]):
     if (len(heights)>0):
         reportheights=heights
     else:
-        reportheights = [float(x) for x in hhentry.get().split(',')]
+        #reportheights = [float(x) for x in hhentry.get().split(',')]
+        reportheights = [float(x) for x in re.split(r'[,; ]+', hhentry.get())]
 
     u_magf = interpolate.interp1d(z, u_mag)
     TIf    = interpolate.interp1d(z, TI)        
@@ -366,7 +392,8 @@ allplotfunctions=[["Velocity time trace", plotvelocityhistory, "Vtrace"],
                   ["TKE Profile",         plottkeprofile,      "TKEprof"],
                   ["TI Profile",          plotTIprofile,       "TIprof"],
                   ["Utau history",        plotutauhistory,     "Utauprof"],
-                  ["Shear exp. Profile",  plotShearAlpha,      "Alphaprof"]]
+                  ["Shear exp. Profile",  plotShearAlpha,      "Alphaprof"],
+                  ["Temp time trace",     plottemperaturehistory, "Ttrace"],]
 
 # Plots all of the data
 def _reportABL():
@@ -442,7 +469,8 @@ def doGUI():
     # GUI stuff
     top  = Tk.Tk()
     #top.geometry("800x400")
-    top.wm_title("ABL stats")
+    cwd = os.getcwd()
+    top.wm_title("ABL stats: "+cwd)
 
     center = Tk.Frame(top)
     center.pack(side=Tk.RIGHT)
@@ -482,7 +510,7 @@ def doGUI():
     # Plot heights
     defaultheights = repr(min(data.heights))+', '+repr(max(data.heights))
 
-    hhlabel = Tk.Label(master=leftframe, text="Plot heights (comma sep)")
+    hhlabel = Tk.Label(master=leftframe, text="Plot heights")
     hhlabel.pack()
     hhentry = Tk.Entry(master=leftframe)
     hhentry.insert(0, defaultheights)
@@ -519,17 +547,17 @@ def main():
     filelist  = args.ABLSTATSFILE
     nogui     = args.nogui
 
-    # Load the data
-    data = ABLStatsFileClass(stats_file=filelist[0])
-    print("min time: %f"%min(data.time))
-    print("max time: %f"%max(data.time))
-
     # Need at least one input
     if (len(filelist)<1):
         print("ERROR: At least one argument expected")
         print("")
         parser.print_help(sys.stderr)
         sys.exit(1)
+
+    # Load the data
+    data = ABLStatsFileClass(stats_file=filelist[0])
+    print("min time: %f"%min(data.time))
+    print("max time: %f"%max(data.time))
 
     # Choose gui option or not
     if nogui:
