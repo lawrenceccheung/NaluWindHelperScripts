@@ -36,7 +36,7 @@ def groupvars(allvarlist):
     return varsizes
 
 # Convert a file into vtk format    
-def convertfile(filename, planenum=-1):
+def convertfile(filename, planenum=-1, outdir=''):
     basefile=os.path.splitext(filename)[0]
     print("Converting "+filename)
     dat, time, headers=loadplanefile(filename)
@@ -60,6 +60,7 @@ def convertfile(filename, planenum=-1):
         Npoints   = (Numi)*(Numj)
         Ncells    = (Numi-1)*(Numj-1)
         newfile   = basefile+"_plane"+repr(planenum)+".vtk"
+        if len(outdir)>0: newfile = outdir+'/'+newfile
         print(" -> writing "+newfile)
         f = open(newfile,"w")
         # Write the header and coordinates
@@ -87,12 +88,15 @@ def convertfile(filename, planenum=-1):
 # Handle arguments
 parser = argparse.ArgumentParser(description='Convert sample planes to ASCII VTK format')
 parser.add_argument('PLANEFILE',  nargs='+',   help="Sample plane file(s) to convert")
-parser.add_argument('--planenum', default=-1,   help="Convert only this offset plane number [default: convert all planes]")
+parser.add_argument('--planenum', default=-1,  help="Convert only this offset plane number [default: convert all planes]")
+parser.add_argument('--outdir',   default='',  help="Write output files in that directory")
 args=parser.parse_args()
+
 # Get the default and user arguments
 filelist  = args.PLANEFILE
 planenum  = int(args.planenum)
+outdir    = args.outdir
 
 #print filelist
 for file in filelist:
-    convertfile(file, planenum=planenum)
+    convertfile(file, planenum=planenum, outdir=outdir)
