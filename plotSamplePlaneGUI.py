@@ -93,8 +93,21 @@ def _quit():
 
 
 # Load all of the information needed from the file
-def loadplanefile(filename):
-    dat=loadtxt(filename, skiprows=2)
+def loadplanefile(filename, checkcomma=True):
+    hascomma=False
+    if checkcomma:
+        with open(filename) as f:
+            if ',' in f.read(): hascomma=True
+        f.close()
+    # Load the file
+    if hascomma:
+        with open(filename) as infile:
+            temp=infile.read().replace(",","")
+        infile.close()
+        dat2=[map(float, y.split()) for y in temp.split("\n")[2:]]
+        dat=array(filter(None, dat2))
+    else:
+        dat=loadtxt(filename, skiprows=2)
     # Get the maximum indices
     numplanes = int(max(dat[:,0]))
     Numj      = int(max(dat[:,1]))
@@ -109,7 +122,7 @@ def loadplanefile(filename):
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
             headers    = fp.readline().strip().split()[1:]
-    time=float(timestring)
+    time=float(timestring.replace(",",""))
     #print time, headers
     fp.close()
     return dat, time, headers
