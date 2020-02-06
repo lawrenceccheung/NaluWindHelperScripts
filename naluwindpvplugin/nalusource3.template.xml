@@ -41,11 +41,25 @@
 	  initial_string="yaml_file" 
 	  command="SetParameter" 
 	  animateable="1" 
-	  default_values="input.yaml" number_of_elements="1">
+	  default_values="" 
+	  number_of_elements="1">
         <Documentation>scalar string</Documentation>
 	<FileListDomain name="files"/>
       </StringVectorProperty>
-      <IntVectorProperty name="boolean" label="All inputs in one YAML" initial_string="boolean" command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+      <IntVectorProperty 
+	  name="boolean" 
+	  label="All inputs in one YAML (does nothing right now)" 
+	  initial_string="boolean" 
+	  command="SetParameter" 
+	  animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotablmesh" 
+	  label="Plot nalu_abl_mesh section" 
+	  initial_string="plotablmesh" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
         <BooleanDomain name="bool"/>
       </IntVectorProperty>
 
@@ -61,6 +75,14 @@
 	  name="plotturbines" 
 	  label="Plot turbines" 
 	  initial_string="plotturbines" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotrefineboxes" 
+	  label="Plot refinement windows (does nothing right now)" 
+	  initial_string="plotrefineboxes" 
 	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
         <BooleanDomain name="bool"/>
       </IntVectorProperty>

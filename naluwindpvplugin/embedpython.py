@@ -2,7 +2,7 @@ import os, json
 import numpy as np
 import paraview.simple as pvs
 
-def makeBox(v1, v2):
+def makeBox(pdo, v1, v2):
     points = vtk.vtkPoints()
     x1 = v1[0]
     y1 = v1[1]
@@ -21,9 +21,9 @@ def makeBox(v1, v2):
     points.InsertPoint(6, x2, y2, z2)  #G
     points.InsertPoint(7, x2, y2, z1)  #H
 
-    pdo = self.GetPolyDataOutput()
+    #pdo = self.GetPolyDataOutput()
     pdo.SetPoints(points)
-    pdo.Allocate(4, 4)
+    pdo.Allocate(8, 4)
 
     rect = vtk.vtkPolygon()
     rect.GetPointIds().SetNumberOfIds(4)
@@ -62,6 +62,102 @@ def makeLineOfSight(p1, p2, resolution, name=''):
         pvs.RenameSource(name, line1)
     return line1
 
+def readFASTfile(FASTfile, keyword):
+    # go through the file line-by-line
+    with open(FASTfile) as fp:
+        line=fp.readline()
+        while line:
+            linesplit=line.strip().split()
+            if linesplit[1]==keyword: 
+                return linesplit[0]
+            #print line
+            line=fp.readline()
+    return
+
+def plotTower(basexy, height, name):
+    # Define some constants
+    towerres = 30
+    towerR   = 1.5
+    # create a new 'Cylinder'
+    towercyl = pvs.Cylinder()
+    # Properties modified on cylinder1
+    towercyl.Height = height
+    towercyl.Resolution = towerres
+    towercyl.Radius = towerR
+    towercyl.Center = [0,0,0]
+    # create a new 'Transform'
+    transcyl = pvs.Transform(Input=towercyl)
+    transcyl.Transform = 'Transform'
+    # Properties modified on transform1.Transform
+    transcyl.Transform.Translate = [basexy[0], basexy[1], basexy[2]+0.5*height]
+    transcyl.Transform.Rotate = [90.0, 0.0, 0.0]
+    #towercyl.RenameSource(name+'_tower_temp', towercyl)
+    pvs.RenameSource(name+'_tower', transcyl)
+    return
+
+def plotNacelle(basexy, height, NacYaw, name):
+    # Define some constants
+    nacellewidth  = 5    
+    nacellelength = 15
+    # create a new nacelle
+    nacellebox = pvs.Box()
+    nacellebox.XLength = nacellelength
+    nacellebox.YLength = nacellewidth
+    nacellebox.ZLength = nacellewidth
+    nacellebox.Center  = [0.5*nacellelength,0,0] #[basexy[0], basexy[1], basexy[2]+height]
+    transnacelle       = pvs.Transform(Input=nacellebox)
+    transnacelle.Transform.Translate = [basexy[0], basexy[1], basexy[2]+height] #[0.3*nacellelength, 0, 0]
+    transnacelle.Transform.Rotate = [0.0, 0.0, NacYaw]
+    pvs.RenameSource(name+'_nacelle', transnacelle)
+    return
+
+def plotRotorDisk(hubxy, turbR, NacYaw, name):
+    # Define some constants
+    rotorres     = 30
+    rotorthick   = 1
+    # create a new 'Cylinder'
+    rotordisk = pvs.Cylinder()
+    rotordisk.Height     = rotorthick
+    rotordisk.Resolution = rotorres
+    rotordisk.Radius     = turbR
+    #rotordisk.Center     = hubxy
+    # create a new 'Transform'
+    rotortrans = pvs.Transform(Input=rotordisk)
+    rotortrans.Transform = 'Transform'
+    rotortrans.Transform.Translate = hubxy
+    rotortrans.Transform.Rotate = [0.0, 0.0, 90+NacYaw]
+    pvs.RenameSource(name+'_rotordisk', rotortrans)
+    return
+
+def plotTurbine(hubxy, basexy, turbR, NacYaw, name):
+    # Some constants
+    towerres      = 100   # Resolution for tower
+    nacellelength = 7.5
+
+    # --- Plot the tower ---
+    towerheight = hubxy[2] - basexy[2]
+    plotTower(basexy, towerheight, name)
+    # towerline = pvs.Line()
+    # towerline.Point1 = basexy
+    # towerline.Point2 = np.array(basexy) + towerheight*np.array([0,0,1])
+    # towerline.Resolution = towerRes
+    # pvs.RenameSource(name+'_tower', towerline)
+    # --- Plot the nacelle ---
+    plotNacelle(basexy, towerheight, NacYaw, name)
+    # --- Plot the rotor disk ---
+    plotRotorDisk(hubxy, turbR, NacYaw, name)
+    # --- Group the datasets together ---
+    turbine0_rotordisk = pvs.FindSource(name+'_rotordisk')
+    turbine0_nacelle = pvs.FindSource(name+'_nacelle')
+    turbine0_tower = pvs.FindSource(name+'_tower')
+    groupDatasets1 = pvs.GroupDatasets(Input=[turbine0_rotordisk, turbine0_nacelle, turbine0_tower])
+    pvs.RenameSource(name+'_allobjects', groupDatasets1)    
+    return
+
+# Quit if there's nothing in yaml_file yet
+if (len(yaml_file)==0): return
+
+# Read the yaml file, convert it to json, and read that as a string
 filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f, Loader=yaml.FullLoader);  sys.stdout.write(json.dumps(data, indent=2));'
 f=open('tempexec.py', 'w')
 f.write(filestring%yaml_file)
@@ -74,14 +170,19 @@ output=stream.read()
 data=json.loads(output)
 #print(json.dumps(data, indent=2))
 
-plotdomain=True
-if ((plotdomain) and ('nalu_abl_mesh' in data) ):
+pdo = self.GetPolyDataOutput()
+
+#plotdomain=True
+if ((plotablmesh) and ('nalu_abl_mesh' in data) ):
     print(data['nalu_abl_mesh'])
     v1 = data['nalu_abl_mesh']['vertices'][0]
     v2 = data['nalu_abl_mesh']['vertices'][1]
     print(v1)
     print(v2)
-    makeBox(v1,v2)
+    makeBox(pdo, v1,v2)
+
+#pdo2 = self.GetPolyDataOutput()
+#makeBox(pdo2, [0,0,0],[10,10,10])
     
 #plotdataprobes=True
 if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
@@ -100,7 +201,7 @@ if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
                 offsetvec   = np.array(plane['offset_vector'])
                 offsetspace = np.array(plane['offset_spacings'])
             for si, s in enumerate(offsetspace):
-                planename = name+repr(si)
+                planename = name+'_'+repr(si)
                 newcorner = corner + s*offsetvec
                 makeSamplePlane(newcorner, edge1, edge2, Nx, Ny, name=planename)
         for line in spec['line_of_site_specifications']:
@@ -110,3 +211,21 @@ if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
             tail    = line['tail_coordinates']
             makeLineOfSight(tail, tip, Npoints-1, name=name)
             
+
+# Plot the turbines
+if (plotturbines and 'actuator' in data['realms'][0]):
+    nturbs = data['realms'][0]['actuator']['n_turbines_glob']
+    actuatorsection = data['realms'][0]['actuator']
+    print('nturbs = ',nturbs)
+    # Loop through all of the turbines
+    for iturb in range(nturbs):
+        turbname = 'Turbine'+repr(iturb)
+        turbxy   = actuatorsection[turbname]['turbine_hub_pos']
+        basexy   = actuatorsection[turbname]['turbine_base_pos']
+        fastfile = actuatorsection[turbname]['fast_input_filename']
+        EDFile=eval(readFASTfile(fastfile, 'EDFile'))
+        TipRad=float(readFASTfile(EDFile, 'TipRad'))
+        NacYaw=float(readFASTfile(EDFile, 'NacYaw'))
+        print(EDFile, TipRad, NacYaw)
+        # Plot the turbines
+        plotTurbine(turbxy, basexy, TipRad, NacYaw, turbname)
