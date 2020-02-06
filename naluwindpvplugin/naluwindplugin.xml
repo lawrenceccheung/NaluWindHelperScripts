@@ -1,0 +1,148 @@
+
+<ServerManagerConfiguration>
+  <ProxyGroup name="sources">
+
+  <!-- server manager xml for a python script that creates a helix 
+       the auto generated panel for this exposes everything more than we want so
+       a custom panel would be good -->
+    <SourceProxy name="Nalu_Wind_Source" class="vtkPythonProgrammableFilter"
+                 label="Nalu Wind Source">
+      <Documentation
+         long_help="Creates a helix using a python script using parameters filled in by the user."
+         short_help="Creates a helix.">
+           This source will execute a python script to produce a helix dataset.
+      </Documentation>
+      
+      <!-- data set type -->
+      <IntVectorProperty 
+        name="OutputDataSetType" 
+        command="SetOutputDataSetType" 
+        number_of_elements="1"
+        default_values="0"> 
+        <!-- value of 0 means vtkPolyData -->
+      </IntVectorProperty>
+
+      <!-- the script -->
+      <!-- Add panel_visibility="never" to hide this -->
+     <StringVectorProperty 
+        name="Script" 
+        command="SetScript"
+        number_of_elements="1"
+	panel_visibility="never" 
+        default_values="import os, json&#xa;import numpy as np&#xa;import paraview.simple as pvs&#xa;&#xa;def makeBox(v1, v2):&#xa;    points = vtk.vtkPoints()&#xa;    x1 = v1[0]&#xa;    y1 = v1[1]&#xa;    z1 = v1[2]&#xa;    x2 = v2[0]&#xa;    y2 = v2[1]&#xa;    z2 = v2[2]&#xa;&#xa;    points.InsertPoint(0, x1, y1, z1)  #A&#xa;    points.InsertPoint(1, x1, y1, z2)  #B&#xa;    points.InsertPoint(2, x1, y2, z2)  #C&#xa;    points.InsertPoint(3, x1, y2, z1)  #D&#xa;&#xa;    points.InsertPoint(4, x2, y1, z1)  #E&#xa;    points.InsertPoint(5, x2, y1, z2)  #F&#xa;    points.InsertPoint(6, x2, y2, z2)  #G&#xa;    points.InsertPoint(7, x2, y2, z1)  #H&#xa;&#xa;    pdo = self.GetPolyDataOutput()&#xa;    pdo.SetPoints(points)&#xa;    pdo.Allocate(4, 4)&#xa;&#xa;    rect = vtk.vtkPolygon()&#xa;    rect.GetPointIds().SetNumberOfIds(4)&#xa;&#xa;    faces = [[0,1,2,3], [0,1,5,4], [3,2,6,7], [4,5,6,7], [0,4,7,3],[1,5,6,2]]&#xa;    #rectpts = [0,1,2,3]&#xa;    for rectpts in faces:&#xa;        for p in range(0, 4):&#xa;            rect.GetPointIds().SetId(p, rectpts[p])&#xa;        pdo.InsertNextCell(rect.GetCellType(), rect.GetPointIds())&#xa;    &#xa;def makeSamplePlane(cornerpt, edge1, edge2, Nx, Ny, name=''):&#xa;    # create a new 'Plane'&#xa;    plane1 = pvs.Plane()&#xa;&#xa;    # Properties modified on plane1&#xa;    plane1.Origin = cornerpt&#xa;    plane1.Point1 = cornerpt+edge1&#xa;    plane1.Point2 = cornerpt+edge2&#xa;    plane1.XResolution = Nx&#xa;    plane1.YResolution = Ny&#xa;    if (len(name)>0):&#xa;        # rename source object&#xa;        pvs.RenameSource(name, plane1)&#xa;    return plane1&#xa;&#xa;def makeLineOfSight(p1, p2, resolution, name=''):&#xa;    # create a new 'Line'&#xa;    line1 = pvs.Line()&#xa;    # Properties modified on line1&#xa;    line1.Point1 = p1&#xa;    line1.Point2 = p2&#xa;    line1.Resolution = resolution&#xa;    if (len(name)>0):&#xa;        # rename source object&#xa;        pvs.RenameSource(name, line1)&#xa;    return line1&#xa;&#xa;filestring='import json, yaml, sys; f=open(\'%s\'); data=yaml.load(f, Loader=yaml.FullLoader);  sys.stdout.write(json.dumps(data, indent=2));'&#xa;f=open('tempexec.py', 'w')&#xa;f.write(filestring%yaml_file)&#xa;f.close()&#xa;&#xa;#print(filestring)&#xa;stream=os.popen('python tempexec.py; rm tempexec.py')&#xa;#stream=os.popen(cmdstring)&#xa;output=stream.read()&#xa;data=json.loads(output)&#xa;#print(json.dumps(data, indent=2))&#xa;&#xa;plotdomain=True&#xa;if ((plotdomain) and ('nalu_abl_mesh' in data) ):&#xa;    print(data['nalu_abl_mesh'])&#xa;    v1 = data['nalu_abl_mesh']['vertices'][0]&#xa;    v2 = data['nalu_abl_mesh']['vertices'][1]&#xa;    print(v1)&#xa;    print(v2)&#xa;    makeBox(v1,v2)&#xa;    &#xa;#plotdataprobes=True&#xa;if ((plotdataprobes) and ('data_probes' in data['realms'][0])):&#xa;    data_probe_specs=data['realms'][0]['data_probes']['specifications']&#xa;    for spec in data_probe_specs:&#xa;        for plane in spec['plane_specifications']:&#xa;            name   = plane['name']&#xa;            corner = np.array(plane['corner_coordinates'])&#xa;            edge1  = np.array(plane['edge1_vector'])&#xa;            edge2  = np.array(plane['edge2_vector'])&#xa;            Nx     = plane['edge1_numPoints']-1&#xa;            Ny     = plane['edge2_numPoints']-1&#xa;            offsetvec   = np.array([0,0,0])&#xa;            offsetspace = [0]&#xa;            if (('offset_vector' in plane) and ('offset_spacings' in plane)):&#xa;                offsetvec   = np.array(plane['offset_vector'])&#xa;                offsetspace = np.array(plane['offset_spacings'])&#xa;            for si, s in enumerate(offsetspace):&#xa;                planename = name+repr(si)&#xa;                newcorner = corner + s*offsetvec&#xa;                makeSamplePlane(newcorner, edge1, edge2, Nx, Ny, name=planename)&#xa;        for line in spec['line_of_site_specifications']:&#xa;            name    = line['name']&#xa;            Npoints = line['number_of_points']&#xa;            tip     = line['tip_coordinates']&#xa;            tail    = line['tail_coordinates']&#xa;            makeLineOfSight(tail, tip, Npoints-1, name=name)&#xa;            ">
+       <Hints>
+         <Widget type="multi_line"/>
+       </Hints>
+     </StringVectorProperty>
+
+      <StringVectorProperty 
+	  name="yaml_file" 
+	  label="YAML file" 
+	  initial_string="yaml_file" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="input.yaml" number_of_elements="1">
+        <Documentation>scalar string</Documentation>
+	<FileListDomain name="files"/>
+      </StringVectorProperty>
+      <IntVectorProperty name="boolean" label="All inputs in one YAML" initial_string="boolean" command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotdataprobes" 
+	  label="Plot data_probes" 
+	  initial_string="plotdataprobes" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotturbines" 
+	  label="Plot turbines" 
+	  initial_string="plotturbines" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+     <!-- python script references a variable "numPts" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="NumberOfPoints"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="numPts;80">
+     </StringVectorProperty> -->
+     
+     <!-- python script references a variable "length" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="Length"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="length;2.0">
+     </StringVectorProperty> -->
+
+     <!-- python script references a variable "rounds" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="NumberOfRounds"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="rounds;3">
+     </StringVectorProperty> -->
+
+     <!--
+      <IntVectorProperty 
+	  name="numPts" 
+	  label="Number of Points" 
+	  initial_string="numPts" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="80.0" 
+	  number_of_elements="1">
+      </IntVectorProperty> 
+     
+      <DoubleVectorProperty 
+	  name="length" 
+	  label="Helix length" 
+	  initial_string="length" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="2.0" 
+	  number_of_elements="1">
+      </DoubleVectorProperty> 
+
+     
+      <IntVectorProperty 
+	  name="rounds" 
+	  label="Number of Rounds" 
+	  initial_string="rounds" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="2" 
+	  number_of_elements="1">
+      </IntVectorProperty> 
+     -->
+
+      <!--
+     <IntVectorProperty 
+	 name="testint" 
+	 label="Test integer" 
+	 initial_string="testint" 
+	 command="SetParameter" 
+	 animateable="1" 
+	 default_values="1" 
+	 number_of_elements="1">
+     </IntVectorProperty> 
+      -->
+
+    <!-- End HelixSource -->
+    </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>
+
+

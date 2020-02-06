@@ -1,0 +1,148 @@
+
+<ServerManagerConfiguration>
+  <ProxyGroup name="sources">
+
+  <!-- server manager xml for a python script that creates a helix 
+       the auto generated panel for this exposes everything more than we want so
+       a custom panel would be good -->
+    <SourceProxy name="Nalu_Wind_Source" class="vtkPythonProgrammableFilter"
+                 label="Nalu Wind Source">
+      <Documentation
+         long_help="Creates a helix using a python script using parameters filled in by the user."
+         short_help="Creates a helix.">
+           This source will execute a python script to produce a helix dataset.
+      </Documentation>
+      
+      <!-- data set type -->
+      <IntVectorProperty 
+        name="OutputDataSetType" 
+        command="SetOutputDataSetType" 
+        number_of_elements="1"
+        default_values="0"> 
+        <!-- value of 0 means vtkPolyData -->
+      </IntVectorProperty>
+
+      <!-- the script -->
+      <!-- Add panel_visibility="never" to hide this -->
+     <StringVectorProperty 
+        name="Script" 
+        command="SetScript"
+        number_of_elements="1"
+	panel_visibility="never" 
+        default_values="REPLACEPYTHON">
+       <Hints>
+         <Widget type="multi_line"/>
+       </Hints>
+     </StringVectorProperty>
+
+      <StringVectorProperty 
+	  name="yaml_file" 
+	  label="YAML file" 
+	  initial_string="yaml_file" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="input.yaml" number_of_elements="1">
+        <Documentation>scalar string</Documentation>
+	<FileListDomain name="files"/>
+      </StringVectorProperty>
+      <IntVectorProperty name="boolean" label="All inputs in one YAML" initial_string="boolean" command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotdataprobes" 
+	  label="Plot data_probes" 
+	  initial_string="plotdataprobes" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
+	  name="plotturbines" 
+	  label="Plot turbines" 
+	  initial_string="plotturbines" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+     <!-- python script references a variable "numPts" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="NumberOfPoints"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="numPts;80">
+     </StringVectorProperty> -->
+     
+     <!-- python script references a variable "length" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="Length"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="length;2.0">
+     </StringVectorProperty> -->
+
+     <!-- python script references a variable "rounds" 
+          we expose this as a property allowing the user to set it 
+     <StringVectorProperty
+       name="NumberOfRounds"
+       command="SetParameter"
+       number_of_elements="2"
+       default_values_delimiter=";"
+       default_values="rounds;3">
+     </StringVectorProperty> -->
+
+     <!--
+      <IntVectorProperty 
+	  name="numPts" 
+	  label="Number of Points" 
+	  initial_string="numPts" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="80.0" 
+	  number_of_elements="1">
+      </IntVectorProperty> 
+     
+      <DoubleVectorProperty 
+	  name="length" 
+	  label="Helix length" 
+	  initial_string="length" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="2.0" 
+	  number_of_elements="1">
+      </DoubleVectorProperty> 
+
+     
+      <IntVectorProperty 
+	  name="rounds" 
+	  label="Number of Rounds" 
+	  initial_string="rounds" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="2" 
+	  number_of_elements="1">
+      </IntVectorProperty> 
+     -->
+
+      <!--
+     <IntVectorProperty 
+	 name="testint" 
+	 label="Test integer" 
+	 initial_string="testint" 
+	 command="SetParameter" 
+	 animateable="1" 
+	 default_values="1" 
+	 number_of_elements="1">
+     </IntVectorProperty> 
+      -->
+
+    <!-- End HelixSource -->
+    </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>
+
+
