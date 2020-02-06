@@ -114,7 +114,7 @@ class ABLStatsFileClass():
         temperature = self.abl_stats.variables['temperature']
         self.T_h = interpolate.interp1d(self.heights, temperature[:, :], axis=1)
 
-    def time_average(self, field='velocity', index=0, times=[0., 100], scalar=False):
+    def time_average(self, field='velocity', index=0, times=[0., 100], scalar=False, zeroD=False):
         '''
         Provide field time average
         field - the field to time-average
@@ -130,8 +130,10 @@ class ABLStatsFileClass():
         dt = np.amax(t) - np.amin(t)
 
         # Filtered field
-        if scalar:    f = self.abl_stats[field][filt,:]
-        else:         f = self.abl_stats[field][filt,:,index]
+        #if field=='utau': f = self.utau[filt]
+        if zeroD:         f = self.abl_stats[field][filt]
+        elif scalar:      f = self.abl_stats[field][filt,:]
+        else:             f = self.abl_stats[field][filt,:,index]
 
         # Compute the time average as an integral
         integral = np.trapz(f, x=t, axis=0) / dt
@@ -165,6 +167,7 @@ def _quit():
 
 
 # Define all plot functions here
+# ---------------------------------
 
 def plotvelocityhistory(data, figax, tlims=[], **kwargs):
     global nogui
@@ -176,13 +179,19 @@ def plotvelocityhistory(data, figax, tlims=[], **kwargs):
         #heights = [float(x) for x in hhentry.get().split(',')]
         heights = [float(x) for x in re.split(r'[,; ]+', hhentry.get())]
     # Loop through all the heights
+    returndat=time
+    headers="Time, "
     for z in heights:
         # Velocity as function of time
         u = data.u_h(z)
         v = data.v_h(z)
         # Velocity magnitude
         u_mag = np.sqrt(u**2 + v**2)
-        figax.plot(time, u_mag, label=r'$U_{\rm mag},$ $z=$'+str(z)+' [m]')
+        returndat=np.vstack((returndat, u_mag))
+        headers=headers+" u_mag(%f),"%z
+        if 'exportdata' not in kwargs:  figax.plot(time, u_mag, label=r'$U_{\rm mag},$ $z=$'+str(z)+' [m]')
+    if 'exportdata' in kwargs: 
+        return returndat.transpose(), headers
     figax.legend(loc='best')
     figax.set_xlabel('Time [s]')
     figax.set_ylabel('Velocity [m/s]')
@@ -197,10 +206,16 @@ def plottemperaturehistory(data, figax, tlims=[], **kwargs):
         #heights = [float(x) for x in hhentry.get().split(',')]
         heights = [float(x) for x in re.split(r'[,; ]+', hhentry.get())]
     # Loop through all the heights
+    returndat=time
+    headers="Time, "
     for z in heights:
         # Velocity as function of time
         T = data.T_h(z)
-        figax.plot(time, T, label=r'$T$, z='+str(z)+' [m]')
+        returndat=np.vstack((returndat, T))
+        headers=headers+" T(%f),"%z
+        if 'exportdata' not in kwargs: figax.plot(time, T, label=r'$T$, z='+str(z)+' [m]')
+    if 'exportdata' in kwargs: 
+        return returndat.transpose(), headers
     figax.legend(loc='best')
     figax.set_xlabel('Time [s]')
     figax.set_ylabel('Temperature [K]')
@@ -209,6 +224,8 @@ def plottemperaturehistory(data, figax, tlims=[], **kwargs):
 def plotutauhistory(data, figax, tlims=[], **kwargs):
     time = data.time
     utau = data.utau
+    if 'exportdata' in kwargs: 
+        return np.vstack((time, utau)).transpose(), "Time, utau"
     figax.plot(time, utau, label=r'$U_{\tau}$')
     figax.set_xlabel('Time [s]')
     figax.set_ylabel('Utau Velocity [m/s]')
@@ -224,15 +241,52 @@ def plotvelocityprofile(data, figax, tlims=[], **kwargs):
     z = data.heights
     u = data.time_average(field='velocity', index=0, times=[t1, t2])
     v = data.time_average(field='velocity', index=1, times=[t1, t2])
-    u_mag = np.sqrt(u**2 + v**2)
-    figax.plot(u, z, '-o', label='U')
-    figax.plot(v, z, '-o', label='V')
-    figax.plot(u_mag, z, '-o', label='U mag')
+    w = data.time_average(field='velocity', index=2, times=[t1, t2])
+    u_mag = np.sqrt(u**2 + v**2 + w**2)
+    if 'exportdata' in kwargs: 
+        headers="z, u, v, w, u_mag"
+        return np.vstack((z, u, v, w, u_mag)).transpose(), headers
+    figax.plot(u, z[:], '-o', label='U')
+    figax.plot(v, z[:], '-o', label='V')
+    figax.plot(w, z[:], '-o', label='W')
+    figax.plot(u_mag, z[:], '-o', label='U mag')
     figax.legend(loc='best')
     figax.set_xlabel('Velocity [m/s]')
     figax.set_ylabel('z [m]')
     if 'focusz'    in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(u_mag), max(u_mag), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plotveltavgprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())    
+    z = data.heights
+    u = data.time_average(field='velocity_tavg', index=0, times=[t1, t2])
+    v = data.time_average(field='velocity_tavg', index=1, times=[t1, t2])
+    w = data.time_average(field='velocity_tavg', index=2, times=[t1, t2])
+    u_mag = np.sqrt(u**2 + v**2 + w**2)
+    if 'exportdata' in kwargs: 
+        headers="z, u, v, w, u_mag"
+        return np.vstack((z, u, v, w, u_mag)).transpose(), headers
+    figax.plot(u, z[:], '-o', label='U')
+    figax.plot(v, z[:], '-o', label='V')
+    figax.plot(w, z[:], '-o', label='W')
+    figax.plot(u_mag, z[:], '-o', label='U mag')
+    figax.legend(loc='best')
+    figax.set_xlabel('Velocity [m/s]')
+    figax.set_ylabel('z [m]')
+    if 'focusz'    in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(u_mag), max(u_mag), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 def plotveerprofile(data, figax, tlims=[], **kwargs):
@@ -246,12 +300,17 @@ def plotveerprofile(data, figax, tlims=[], **kwargs):
     u = data.time_average(field='velocity', index=0, times=[t1, t2])
     v = data.time_average(field='velocity', index=1, times=[t1, t2])
     veer = 270-np.arctan2(v, u)*180.0/math.pi
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, veer)).transpose(), "z, veer"
     figax.plot(veer, z, '-o', label='Wind Dir')
     figax.legend(loc='best')
     figax.set_xlabel('Wind Direction [deg]')
     figax.set_ylabel('z [m]')
     if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(veer), max(veer), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 def plottkeprofile(data, figax, tlims=[], **kwargs):
@@ -262,10 +321,15 @@ def plottkeprofile(data, figax, tlims=[], **kwargs):
         t1 = float(t1entry.get())
         t2 = float(t2entry.get())
     z  = data.heights
-    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
-    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
-    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    fieldstr='resolved_stress'
+    #fieldstr='sfs_stress_tavg'
+    uu = data.time_average(field=fieldstr, index=0, times=[t1, t2])
+    vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
+    ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
     tke = 0.5*(uu+vv+ww)
+    if 'exportdata' in kwargs: 
+        headers="z, uu, vv, ww, tke"
+        return np.vstack((z, uu, vv, ww, tke)).transpose(), headers
     figax.plot(uu, z, '-o', label='uu')
     figax.plot(vv, z, '-o', label='vv')
     figax.plot(ww, z, '-o', label='ww')
@@ -275,6 +339,41 @@ def plottkeprofile(data, figax, tlims=[], **kwargs):
     figax.set_ylabel('z [m]')
     if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(tke), max(tke), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plotSFSprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    z  = data.heights
+    #fieldstr='resolved_stress'
+    #fieldstr='sfs_stress'
+    fieldstr='sfs_stress_tavg'
+    uu = data.time_average(field=fieldstr, index=0, times=[t1, t2])
+    vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
+    ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
+    tke = 0.5*(uu+vv+ww)
+    if 'exportdata' in kwargs: 
+        headers="z, uu, vv, ww, tke"
+        return np.vstack((z, uu, vv, ww, tke)).transpose(), headers
+    figax.plot(uu, z, '-o', label='uu')
+    figax.plot(vv, z, '-o', label='vv')
+    figax.plot(ww, z, '-o', label='ww')
+    figax.plot(tke, z, '-o', label='SFSTKE')
+    figax.legend(loc='best')
+    figax.set_xlabel("SFS Stress [m^2/s^2]")
+    figax.set_ylabel('z [m]')
+    if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(tke), max(tke), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 
@@ -287,12 +386,123 @@ def plottemperatureprofile(data, figax, tlims=[], **kwargs):
         t2 = float(t2entry.get())
     z = data.heights
     T = data.time_average(field='temperature', index=0, times=[t1, t2], scalar=True)
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, T)).transpose(), "z, T"
     figax.plot(T, z, '-o', label='Temp')
     figax.legend(loc='best')
     figax.set_xlabel('Temperature [K]')
     figax.set_ylabel('z [m]')
     if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(T), max(T), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plotttavgprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    z = data.heights
+    T = data.time_average(field='temperature_tavg', index=0, times=[t1, t2], scalar=True)
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, T)).transpose(), "z, T"
+    figax.plot(T, z, '-o', label='Temp')
+    figax.legend(loc='best')
+    figax.set_xlabel('Temperature [K]')
+    figax.set_ylabel('z [m]')
+    if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(T), max(T), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plottfluxprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    z  = data.heights
+    Tfstr = 'temperature_resolved_flux'
+    Tu = data.time_average(field=Tfstr, index=0, times=[t1, t2])
+    Tv = data.time_average(field=Tfstr, index=1, times=[t1, t2])
+    Tw = data.time_average(field=Tfstr, index=2, times=[t1, t2])
+    if 'exportdata' in kwargs: 
+        headers="z, Tu, Tv, Tw"
+        return np.vstack((z, Tu, Tv, Tw)).transpose(), headers
+    figax.plot(Tu, z[:], '-o', label='Tu')
+    figax.plot(Tv, z[:], '-o', label='Tv')
+    figax.plot(Tw, z[:], '-o', label='Tw')
+    figax.legend(loc='best')
+    figax.set_xlabel('T flux [K m/s]')
+    figax.set_ylabel('z [m]')
+    if 'focusz'    in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(u_mag), max(u_mag), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plottfluxsfsprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    z  = data.heights
+    Tfstr = 'temperature_sfs_flux_tavg'
+    Tu = data.time_average(field=Tfstr, index=0, times=[t1, t2])
+    Tv = data.time_average(field=Tfstr, index=1, times=[t1, t2])
+    Tw = data.time_average(field=Tfstr, index=2, times=[t1, t2])
+    if 'exportdata' in kwargs: 
+        headers="z, Tu, Tv, Tw"
+        return np.vstack((z, Tu, Tv, Tw)).transpose(), headers
+    figax.plot(Tu, z[:], '-o', label='Tu')
+    figax.plot(Tv, z[:], '-o', label='Tv')
+    figax.plot(Tw, z[:], '-o', label='Tw')
+    figax.legend(loc='best')
+    figax.set_xlabel('T flux [K m/s]')
+    figax.set_ylabel('z [m]')
+    if 'focusz'    in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(u_mag), max(u_mag), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plottfluxtavgprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    z  = data.heights
+    Tfstr = 'temperature_resolved_flux_tavg'
+    Tu = data.time_average(field=Tfstr, index=0, times=[t1, t2])
+    Tv = data.time_average(field=Tfstr, index=1, times=[t1, t2])
+    Tw = data.time_average(field=Tfstr, index=2, times=[t1, t2])
+    if 'exportdata' in kwargs: 
+        headers="z, Tu, Tv, Tw"
+        return np.vstack((z, Tu, Tv, Tw)).transpose(), headers
+    figax.plot(Tu, z[:], '-o', label='Tu')
+    figax.plot(Tv, z[:], '-o', label='Tv')
+    figax.plot(Tw, z[:], '-o', label='Tw')
+    figax.legend(loc='best')
+    figax.set_xlabel('T flux [K m/s]')
+    figax.set_ylabel('z [m]')
+    if 'focusz'    in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(u_mag), max(u_mag), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 def plotShearAlpha(data, figax, tlims=[], **kwargs):
@@ -309,12 +519,17 @@ def plotShearAlpha(data, figax, tlims=[], **kwargs):
     dudz = (u_mag[1:]-u_mag[0:-1])/(z[1:]-z[0:-1])
     dudz=np.append(dudz, dudz[-1])
     alpha=z/u_mag*dudz
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, alpha)).transpose(), "z, Alpha"
     figax.plot(alpha, z, '-o', label='Shear Alpha')
     figax.legend(loc='best')
     figax.set_xlabel('Shear Exponent [-]')
     figax.set_ylabel('z [m]')
     if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(alpha), max(alpha), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 def plotTIprofile(data, figax, tlims=[], **kwargs):
@@ -324,6 +539,7 @@ def plotTIprofile(data, figax, tlims=[], **kwargs):
     else:
         t1 = float(t1entry.get())
         t2 = float(t2entry.get())
+
     z  = data.heights
     u = data.time_average(field='velocity', index=0, times=[t1, t2])
     v = data.time_average(field='velocity', index=1, times=[t1, t2])
@@ -334,12 +550,17 @@ def plotTIprofile(data, figax, tlims=[], **kwargs):
     ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
     tke = 0.5*(uu+vv+ww)
     TI = sqrt(2.0/3.0*tke)/u_mag
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, TI)).transpose(), "z, TI"
     figax.plot(TI, z, '-o', label='TKE')
     figax.legend(loc='best')
     figax.set_xlabel("TI [-]")
     figax.set_ylabel('z [m]')
     if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
     if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(TI), max(TI), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
 def reportABLstats(data, heights=[], tlims=[]):
@@ -355,9 +576,11 @@ def reportABLstats(data, heights=[], tlims=[]):
     v = data.time_average(field='velocity', index=1, times=[t1, t2])
     u_mag = np.sqrt(u**2 + v**2)
     # TKE/TI
-    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
-    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
-    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    fieldstr='resolved_stress'
+    #fieldstr='sfs_stress_tavg'
+    uu = data.time_average(field=fieldstr, index=0, times=[t1, t2])
+    vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
+    ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
     tke = 0.5*(uu+vv+ww)
     TI = sqrt(2.0/3.0*tke)/u_mag
     # Shear
@@ -365,6 +588,14 @@ def reportABLstats(data, heights=[], tlims=[]):
     dudz=np.append(dudz, dudz[-1])
     alpha=z/u_mag*dudz
     veer = 270-np.arctan2(v, u)*180.0/math.pi
+    utau = data.time_average(field='utau', times=[t1, t2], zeroD=True)
+    # Temperature
+    T = data.time_average(field='temperature', index=0, times=[t1, t2], scalar=True)
+    Tfstr = 'temperature_resolved_flux'
+    Tw = data.time_average(field=Tfstr, index=2, times=[t1, t2])
+    k = 0.40
+    g = 9.81
+    Oblength = -utau**3/(k*g/T*Tw)
 
     if (len(heights)>0):
         reportheights=heights
@@ -376,20 +607,35 @@ def reportABLstats(data, heights=[], tlims=[]):
     TIf    = interpolate.interp1d(z, TI)        
     veerf  = interpolate.interp1d(z, veer)
     alphaf = interpolate.interp1d(z, alpha)
+    Oblf   = interpolate.interp1d(z, Oblength)
+
     print("")
-    print("%9s %12s %12s %12s %12s"%("z", "u_mag", "TI", "alpha", "Wdir"))
-    print("%9s %12s %12s %12s %12s"%("===", "===", "===", "===", "==="))
+    print("%9s %12s %12s %12s %12s %12s"%
+          ("z", "u_mag", "TI", "alpha", "Wdir", "Ob.L"))
+    print("%9s %12s %12s %12s %12s %12s"%
+          ("===", "===", "===", "===", "===", "==="))
     for h in reportheights:
-        print("%9.2f %e %e %e %e"%(h, u_magf(h), TIf(h), alphaf(h), veerf(h)))
-        outdata.append([u_magf(h), TIf(h), alphaf(h), veerf(h)])
+        print("%9.2f %e %e %e %e %e"%
+              (h, u_magf(h), TIf(h), alphaf(h), veerf(h), Oblf(h)))
+        outdata.append([u_magf(h), TIf(h), alphaf(h), veerf(h), Oblf(h)])
+
+    print("")
+    print("AVG Utau = %e"%(utau))
+
     return array(outdata)
 
 # All of the possible functions to plot
 allplotfunctions=[["Velocity time trace", plotvelocityhistory, "Vtrace"],
                   ["Velocity Profile",    plotvelocityprofile, "Vprof"],
+                  ["Velocity tavg Prof",  plotveltavgprofile,  "Vtavgprof"],
                   ["Veer Profile",        plotveerprofile,     "Veerprof"],
                   ["Temperature Profile", plottemperatureprofile, "Tprof"],
+                # ["Temp tavg Profile",   plotttavgprofile,    "Ttavgprof"],
+                  ["Temp flux Profile",   plottfluxprofile,    "Tfluxprof"],
+                  ["Temp flux SFS Prof",  plottfluxsfsprofile,"Tfluxsfsprof"],
+                  ["Temp flux tavg Prof", plottfluxtavgprofile,"Tfluxtavgprof"],
                   ["TKE Profile",         plottkeprofile,      "TKEprof"],
+                  ["SFS Profile",         plotSFSprofile,      "SFSstressprof"],
                   ["TI Profile",          plotTIprofile,       "TIprof"],
                   ["Utau history",        plotutauhistory,     "Utauprof"],
                   ["Shear exp. Profile",  plotShearAlpha,      "Alphaprof"],
@@ -427,7 +673,7 @@ def _saveallfigs():
         ax.clear()
         # Call the function to plot
         print("Saving "+plotfunc[0])
-        plotfunc[1](data, ax)
+        plotfunc[1](data, ax, exportdata=True)
         ax.set_title(plotfunc[0])
         canvas.draw()
         toolbar.update()
@@ -435,6 +681,16 @@ def _saveallfigs():
         savename=plotfunc[2]+".png"
         fig.savefig(savename)
         canvas.show()
+    return
+
+# Plots all of the data
+def _exportalldata():
+    global allplotfunctions, data
+    for plotfunc in allplotfunctions: 
+        returndat, headers=plotfunc[1](data, None, exportdata=True)
+        savename=plotfunc[2]+".dat"
+        print("Exporting "+plotfunc[0])
+        np.savetxt(savename, returndat, header=headers)
     return
 
 # Plots all of the data
@@ -463,7 +719,7 @@ def jupyter_plotall(data, plotfuncs=allplotfunctions, tlims=[], **kwargs):
 # Run all of the gui elements
 def doGUI():
     global fig, canvas, toolbar, plotfile, center
-    global t1entry, t2entry, hhentry
+    global t1entry, t2entry, hhentry, paramentry
     global allplotfunctions, data
 
     # GUI stuff
@@ -488,6 +744,9 @@ def doGUI():
     canvas.mpl_connect('key_press_event', on_key_event)
 
     # -- Set up radio bars --
+    radiolabel = Tk.Label(master=leftframe, text="Plot functions")
+    radiolabel.pack()
+
     plotlist = [x[0] for x in allplotfunctions]
     allfiles_pane = ScrollableFrame(leftframe, bg='#444444')
     allfiles_pane.pack(expand="true", fill="both")
@@ -516,6 +775,12 @@ def doGUI():
     hhentry.insert(0, defaultheights)
     hhentry.pack()
 
+    paramlabel = Tk.Label(master=leftframe, text="Plot params")
+    paramlabel.pack()
+    paramentry = Tk.Entry(master=leftframe)
+    paramentry.insert(0, "{'ylims':[0,200] }")
+    paramentry.pack()
+
     # Add buttons
     quitbutton  = Tk.Button(master=leftframe, text='Quit', command=_quit)
     quitbutton.pack(side=Tk.BOTTOM)
@@ -528,6 +793,9 @@ def doGUI():
 
     saveallbutton=Tk.Button(master=leftframe, text="Save all", command=_saveallfigs)
     saveallbutton.pack(side=Tk.TOP)
+
+    exportallbutton=Tk.Button(master=leftframe, text="Export all", command=_exportalldata)
+    exportallbutton.pack(side=Tk.TOP)
 
     # Start the main loop
     Tk.mainloop()
