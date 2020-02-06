@@ -9,8 +9,8 @@
                  label="Nalu Wind Source">
       <Documentation
          long_help="Creates a helix using a python script using parameters filled in by the user."
-         short_help="Creates a helix.">
-           This source will execute a python script to produce a helix dataset.
+         short_help="Load and render a Nalu-wind input file">
+           This source will load, parse, and render objects from a Nalu-Wind input file.
       </Documentation>
       
       <!-- data set type -->
@@ -43,7 +43,7 @@
 	  animateable="1" 
 	  default_values="" 
 	  number_of_elements="1">
-        <Documentation>scalar string</Documentation>
+        <Documentation>Choose the Nalu-Wind input file</Documentation>
 	<FileListDomain name="files"/>
       </StringVectorProperty>
       <IntVectorProperty 
@@ -53,6 +53,7 @@
 	  command="SetParameter" 
 	  animateable="1" default_values="1" number_of_elements="1">
         <BooleanDomain name="bool"/>
+        <Documentation>Ignore this input for now</Documentation>
       </IntVectorProperty>
 
       <IntVectorProperty 
@@ -64,8 +65,16 @@
       </IntVectorProperty>
 
       <IntVectorProperty 
+	  name="plotexomesh" 
+	  label="Load exo mesh from realms section" 
+	  initial_string="plotexomesh" 
+	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
+      <IntVectorProperty 
 	  name="plotdataprobes" 
-	  label="Plot data_probes" 
+	  label="Plot data_probes section" 
 	  initial_string="plotdataprobes" 
 	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
         <BooleanDomain name="bool"/>
@@ -73,7 +82,7 @@
 
       <IntVectorProperty 
 	  name="plotturbines" 
-	  label="Plot turbines" 
+	  label="Plot turbines section" 
 	  initial_string="plotturbines" 
 	  command="SetParameter" animateable="1" default_values="1" number_of_elements="1">
         <BooleanDomain name="bool"/>

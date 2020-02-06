@@ -183,6 +183,13 @@ if ((plotablmesh) and ('nalu_abl_mesh' in data) ):
 
 #pdo2 = self.GetPolyDataOutput()
 #makeBox(pdo2, [0,0,0],[10,10,10])
+
+#plotexomesh = True
+if ((plotexomesh) and ('mesh' in data['realms'][0])):
+    meshfilename = data['realms'][0]['mesh']
+    print('Loading exo mesh from: %s'%meshfilename)
+    meshexo = pvs.ExodusIIReader(FileName=[meshfilename])
+    pvs.RenameSource(meshfilename, meshexo)    
     
 #plotdataprobes=True
 if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
