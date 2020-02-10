@@ -622,7 +622,7 @@ def reportABLstats(data, heights=[], tlims=[]):
     print("")
     print("AVG Utau = %e"%(utau))
 
-    return array(outdata), utau
+    return array(outdata)
 
 def avgutau(data, heights=[], tlims=[]):
     if len(tlims)>0:
