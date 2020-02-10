@@ -622,7 +622,17 @@ def reportABLstats(data, heights=[], tlims=[]):
     print("")
     print("AVG Utau = %e"%(utau))
 
-    return array(outdata)
+    return array(outdata), utau
+
+def avgutau(data, heights=[], tlims=[]):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    utau = data.time_average(field='utau', times=[t1, t2], zeroD=True)
+    return utau
 
 # All of the possible functions to plot
 allplotfunctions=[["Velocity time trace", plotvelocityhistory, "Vtrace"],
