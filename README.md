@@ -12,7 +12,9 @@ Scripts to help with Nalu-Wind
 - [Convert sample planes to VTK](#convert-sample-planes-to-vtk): [convertSamplePlane2VTK.py](convertSamplePlane2VTK.py)
 
 ## Plot mesh refinement
-**[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices**  
+<details>
+  <summary><b>[plotmesh.py](plotmesh.py): Plots the mesh refinement levels, turbine locations, and cut-slices</b> </summary>
+  
 #### Usage
 ```bash
 $ module load canopy
@@ -83,8 +85,12 @@ Then the output of `plotmesh.py` will look like:
 
 ![image](docs/images/plotmesh_pic3.png)  
 
+</details>
+
 ## Mesh refinement script
-**[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement**
+<details>
+  <summary><b>[buildrefinemesh.sh](buildrefinemesh.sh): Creates a mesh, does local refinement</b></summary>
+  
 #### Usage
 
 ```
@@ -218,9 +224,13 @@ New mesh blocks:
   "fluid_part.pyramid_5._urpconv.Tetrahedron_4._urpconv" ;
 }
 ```
+</details>
+
 
 ## Slice mesh utility
-**[slicemesh.sh](slicemesh.sh): Creates the slice geometry for a mesh**  
+<details>
+  <summary><b>[slicemesh.sh](slicemesh.sh): Creates the slice geometry for a mesh</b></summary>
+  
 #### Usage
 ```bash
 ./slicemesh.sh MESHYAMLFILE [OPTIONS]
@@ -343,9 +353,13 @@ transfers:
 
 These yaml parameters can be added to `alm_simulation.yaml` to extract
 the slice during simulations.
+</details>
+
 
 ## Plot FAST output
-**[plotFAST.py](plotFAST.py): Plots FAST output**  
+<details>
+  <summary><b>[plotFAST.py](plotFAST.py): Plots FAST output</b></summary>
+  
 #### Usage  
 ```bash
 $ module load canopy
@@ -356,9 +370,13 @@ Output:
 
 It's pretty self-explanatory.  Check the variables on the left you would like to plot, and hit `Plot`.
 If the output files get updated, hit `Reload data` to reread the files from disk.
+</details>
+
 
 ## Backup and write a restart YAML file
-**[restartbackupnalu.py](restartbackupnalu.py): Backups up a simulation from a YAML file**
+<details>
+  <summary><b>[restartbackupnalu.py](restartbackupnalu.py): Backups up a simulation from a YAML file</b></summary>
+  
 #### Usage
 ```
 usage: restartbackupnalu.py [-h] [--dobackup] [--Nsteps NSTEPS]
@@ -378,9 +396,12 @@ optional arguments:
                    based suffix]
 
 ```
+</details>
 
 ## Plot sample planes
-
+<details>
+  <summary><b>[plotSamplePlaneGUI.py](plotSamplePlaneGUI.py): GUI to plot the sample planes</b></summary>
+  
 #### Usage
 ```
 usage: plotSamplePlaneGUI.py [-h] [--nogui] [--planenum PLANENUM]
@@ -430,9 +451,11 @@ display, and hit the `Plot` button to see something like:
 
 ![image](docs/images/plotSamplePlane_pic1.png)  
 
-## Convert sample planes to VTK
+</details>
 
-This script converts the text output sample planes to ASCII VTK format.
+## Convert sample planes to VTK
+<details>
+  <summary><b>[convertSamplePlane2VTK.py](convertSamplePlane2VTK.py): This script converts the text output sample planes to ASCII VTK format.</b></summary>
 
 #### Usage
 ```bash
@@ -462,3 +485,4 @@ Converting HHplane_0009200_0.dat
 Converting HHplane_0009300_0.dat
  -> writing HHplane_0009300_0_plane0.vtk
 ```
+</details>
