@@ -51,12 +51,13 @@ def outputpng(vtkfile, pngfile, params={}):
     calculator1.Function = ''
 
     # Properties modified on calculator1
-    calculator1.ResultArrayName = 'Velocity_Horizontal'
+    #calculator1.ResultArrayName = DisplayTitle
     #calculator1.Function = 'sqrt(velocity_probe_X^2 + velocity_probe_Y^2)'
     #calcFunc = 'sqrt(velocity_probe_X^2 + velocity_probe_Y^2)'
-    displayTitle = getparam('displayTitle', params, 'Horiz_Velocity')
+    DisplayTitle = getparam('displayTitle', params, 'Velocity_Horizontal')
     displayVar   = getparam('displayVar', params, 'sqrt(velocity_probe_X^2 + velocity_probe_Y^2)')
-    calculator1.Function = displayVar
+    calculator1.ResultArrayName = DisplayTitle
+    calculator1.Function        = displayVar
 
     # get active view
     renderView1 = GetActiveViewOrCreate('RenderView')
@@ -67,27 +68,27 @@ def outputpng(vtkfile, pngfile, params={}):
     Hide(hHplane_0009000_0_plane, renderView1)
     calculator1Display = Show(calculator1, renderView1)
 
-    # get color transfer function/color map for 'Velocity_Horizontal'
-    velocity_HorizontalLUT = GetColorTransferFunction('Velocity_Horizontal')
+    # get color transfer function/color map for DisplayTitle
+    velocity_HorizontalLUT = GetColorTransferFunction(DisplayTitle)
 
-    # get opacity transfer function/opacity map for 'Velocity_Horizontal'
-    velocity_HorizontalPWF = GetOpacityTransferFunction('Velocity_Horizontal')
+    # get opacity transfer function/opacity map for DisplayTitle
+    velocity_HorizontalPWF = GetOpacityTransferFunction(DisplayTitle)
 
     # trace defaults for the display properties.
     calculator1Display.Representation = 'Surface'
-    calculator1Display.ColorArrayName = ['POINTS', 'Velocity_Horizontal']
+    calculator1Display.ColorArrayName = ['POINTS', DisplayTitle]
     calculator1Display.LookupTable = velocity_HorizontalLUT
-    calculator1Display.OSPRayScaleArray = 'Velocity_Horizontal'
+    calculator1Display.OSPRayScaleArray = DisplayTitle
     calculator1Display.OSPRayScaleFunction = 'PiecewiseFunction'
     calculator1Display.SelectOrientationVectors = 'None'
     calculator1Display.ScaleFactor = 600.0
-    calculator1Display.SelectScaleArray = 'Velocity_Horizontal'
+    calculator1Display.SelectScaleArray = DisplayTitle
     calculator1Display.GlyphType = 'Arrow'
-    calculator1Display.GlyphTableIndexArray = 'Velocity_Horizontal'
+    calculator1Display.GlyphTableIndexArray = DisplayTitle
     calculator1Display.GaussianRadius = 30.0
-    calculator1Display.SetScaleArray = ['POINTS', 'Velocity_Horizontal']
+    calculator1Display.SetScaleArray = ['POINTS', DisplayTitle]
     calculator1Display.ScaleTransferFunction = 'PiecewiseFunction'
-    calculator1Display.OpacityArray = ['POINTS', 'Velocity_Horizontal']
+    calculator1Display.OpacityArray = ['POINTS', DisplayTitle]
     calculator1Display.OpacityTransferFunction = 'PiecewiseFunction'
     calculator1Display.DataAxesGrid = 'GridAxesRepresentation'
     calculator1Display.PolarAxes = 'PolarAxesRepresentation'
@@ -182,7 +183,7 @@ defaultdict      = {'colorlims':[0, 10],
                     'imagesize':[1000, 1000],
                     'fontsize':16,
                     'GridAxesVisibility':1,
-                    'displayTitle':'Horiz_Velocity',
+                    'displayTitle':'Velocity_Horizontal',
                     'displayVar':'sqrt(velocity_probe_X^2 + velocity_probe_Y^2)',
                     }
 
@@ -200,6 +201,8 @@ parser.add_argument('--useskybridge', dest='useskybridge', action='store_true',
                     help="Use skybridge's pvbatch")
 parser.add_argument('--usechama',     dest='usechama', action='store_true',
                     help="Use chama's pvbatch")
+parser.add_argument('--suffix',       default='',
+                    help="Suffix to add after filename and before .png")
 parser.add_argument('--b64params',    default='',
                     help=argparse.SUPPRESS)
 
@@ -213,6 +216,7 @@ pvbatchcmd  = args.pvbatchcmd
 printparams = args.printparams
 useskybridge= args.useskybridge
 usechama    = args.usechama
+suffix      = args.suffix
 
 if printparams: 
     defaultdict.update(eval(args.useparams))
@@ -232,7 +236,7 @@ if (inParaview): # --- Do this in paraview ---
     # Loop through all of the vtk files    
     for vtkfile in allvtkfiles:
         basefile, ext = os.path.splitext(vtkfile)
-        pngfile = basefile+'.png'
+        pngfile = basefile+suffix+'.png'
         print("Working on "+vtkfile)
         outputpng(vtkfile, pngfile, params=defaultdict)
 
@@ -254,6 +258,8 @@ else:            # --- Call pvbatch ---
         if usechama:
             pvbatchcmd=chamapvbatch
         pvbatchcmd = pvbatchcmd+' %i %i %s'%(NCPUS, CPUTIME, WCID)
+    if (suffix != ''):
+        allargs = allargs+" --suffix %s"%suffix
     runcmd  = pvbatchcmd+' '+thisfile+' '+allargs
     #defaultdict.update(updatedict)
     if printparams: 
