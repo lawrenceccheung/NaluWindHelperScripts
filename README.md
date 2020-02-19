@@ -375,8 +375,13 @@ If the output files get updated, hit `Reload data` to reread the files from disk
 
 ## Backup and write a restart YAML file
 <details>
-  <summary><b>[restartbackupnalu.py](restartbackupnalu.py): Backups up a simulation from a YAML file</b></summary>
-  
+  <summary><b>[restartbackupnalu.py](restartbackupnalu.py): Retarts and backups up a simulation from a YAML file</b></summary>
+
+This script takes in the current YAML input file, then automatically
+sets up the right restart parameters and spits out a new YAML file.
+Works on both ABL and FAST turbine runs.  Optionally backups all the
+restart/output files so they don't get overwritten.
+
 #### Usage
 ```
 usage: restartbackupnalu.py [-h] [--dobackup] [--Nsteps NSTEPS]
@@ -389,11 +394,15 @@ positional arguments:
   yamlfile
 
 optional arguments:
-  -h, --help       show this help message and exit
-  --dobackup       Backup files [default=False]
-  --Nsteps NSTEPS  Run another NSTEPS
-  --suffix SUFFIX  Suffix to attach to backup files [default is date/time
-                   based suffix]
+  -h, --help            show this help message and exit
+  --dobackup            Backup files [default=False]
+  --addNsteps ADDNSTEPS
+                        Add another ADDNSTEPS to the run [default 100]
+  --runToNsteps RUNTONSTEPS
+                        Run until RUNTONSTEPS are reached [default is
+                        ADDNSTEPS, not RUNTONSTEPS]
+  --suffix SUFFIX       Suffix to attach to backup files [default is date/time
+                        based suffix]
 
 ```
 </details>
