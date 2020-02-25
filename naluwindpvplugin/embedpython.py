@@ -227,28 +227,30 @@ if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
     data_probe_specs=data['realms'][0]['data_probes']['specifications']
     # Stuff
     for spec in data_probe_specs:
-        for plane in spec['plane_specifications']:
-            name   = plane['name']
-            corner = np.array(plane['corner_coordinates'])
-            edge1  = np.array(plane['edge1_vector'])
-            edge2  = np.array(plane['edge2_vector'])
-            Nx     = plane['edge1_numPoints']-1
-            Ny     = plane['edge2_numPoints']-1
-            offsetvec   = np.array([0,0,0])
-            offsetspace = [0]
-            if (('offset_vector' in plane) and ('offset_spacings' in plane)):
-                offsetvec   = np.array(plane['offset_vector'])
-                offsetspace = np.array(plane['offset_spacings'])
-            for si, s in enumerate(offsetspace):
-                planename = name+'_'+repr(si)
-                newcorner = corner + s*offsetvec
-                makeSamplePlane(newcorner, edge1, edge2, Nx, Ny, name=planename)
-        for line in spec['line_of_site_specifications']:
-            name    = line['name']
-            Npoints = line['number_of_points']
-            tip     = line['tip_coordinates']
-            tail    = line['tail_coordinates']
-            makeLineOfSight(tail, tip, Npoints-1, name=name)
+        if 'plane_specifications' in spec:
+            for plane in spec['plane_specifications']:
+                name   = plane['name']
+                corner = np.array(plane['corner_coordinates'])
+                edge1  = np.array(plane['edge1_vector'])
+                edge2  = np.array(plane['edge2_vector'])
+                Nx     = plane['edge1_numPoints']-1
+                Ny     = plane['edge2_numPoints']-1
+                offsetvec   = np.array([0,0,0])
+                offsetspace = [0]
+                if (('offset_vector' in plane) and ('offset_spacings' in plane)):
+                    offsetvec   = np.array(plane['offset_vector'])
+                    offsetspace = np.array(plane['offset_spacings'])
+                for si, s in enumerate(offsetspace):
+                    planename = name+'_'+repr(si)
+                    newcorner = corner + s*offsetvec
+                    makeSamplePlane(newcorner, edge1, edge2, Nx, Ny, name=planename)
+        if 'line_of_site_specifications' in spec:
+            for line in spec['line_of_site_specifications']:
+                name    = line['name']
+                Npoints = line['number_of_points']
+                tip     = line['tip_coordinates']
+                tail    = line['tail_coordinates']
+                makeLineOfSight(tail, tip, Npoints-1, name=name)
             
 
 # Plot the turbines
