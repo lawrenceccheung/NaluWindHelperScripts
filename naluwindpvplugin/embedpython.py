@@ -2,6 +2,9 @@ import os, json
 import numpy as np
 import paraview.simple as pvs
 
+# NOTE NOTE NOTE: do not use the double-quotation mark in this file.
+# it will mess up the xml embedding. Single quotes are fine.
+
 def makeBox(pdo, v1, v2):
     points = vtk.vtkPoints()
     x1 = v1[0]
@@ -154,17 +157,33 @@ def plotTurbine(hubxy, basexy, turbR, NacYaw, name):
     pvs.RenameSource(name+'_allobjects', groupDatasets1)    
     return
 
+def checkfilepath(filename, basepath):
+    if (filename[0]=='/'): # Absolute path, do nothing
+        return filename
+    else:
+        return basepath+'/'+filename
+
+def checkfileexists(filename):
+    if os.path.isfile(filename):
+        return True
+    else:
+        print('WARNING: file does not exist: %s'%filename)        
+        return False
+
 # Quit if there's nothing in yaml_file yet
 if (len(yaml_file)==0): return
 
+basepath=os.path.dirname(yaml_file)
+
 # Read the yaml file, convert it to json, and read that as a string
-filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f, Loader=yaml.FullLoader);  sys.stdout.write(json.dumps(data, indent=2));'
+filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f);  sys.stdout.write(json.dumps(data, indent=2));'
 f=open('tempexec.py', 'w')
 f.write(filestring%yaml_file)
 f.close()
 
 #print(filestring)
 stream=os.popen('python tempexec.py; rm tempexec.py')
+#stream=os.popen('python tempexec.py')
 #stream=os.popen(cmdstring)
 output=stream.read()
 data=json.loads(output)
@@ -186,14 +205,27 @@ if ((plotablmesh) and ('nalu_abl_mesh' in data) ):
 
 #plotexomesh = True
 if ((plotexomesh) and ('mesh' in data['realms'][0])):
-    meshfilename = data['realms'][0]['mesh']
-    print('Loading exo mesh from: %s'%meshfilename)
-    meshexo = pvs.ExodusIIReader(FileName=[meshfilename])
-    pvs.RenameSource(meshfilename, meshexo)    
+    inputmeshfilename = data['realms'][0]['mesh']
+    # Double check and santize meshfilename
+    root_ext = os.path.splitext(inputmeshfilename)
+    if (len(root_ext)>1):
+        if ((root_ext[1] != '.exo') and (root_ext[1] != '.e')):
+            print('Cannot load exo mesh from: %s'%inputmeshfilename)        
+            print('Possibly not an exodus file')
+            plotexomesh = False
+    meshfilename = checkfilepath(inputmeshfilename, basepath)
+    if (not checkfileexists(inputmeshfilename)):
+        print('Cannot load exo mesh from: %s'%inputmeshfilename)        
+        plotexomesh = False
+    if plotexomesh:
+        print('Loading exo mesh from: %s'%meshfilename)
+        meshexo = pvs.ExodusIIReader(FileName=[meshfilename])
+        pvs.RenameSource(meshfilename, meshexo)    
     
 #plotdataprobes=True
 if ((plotdataprobes) and ('data_probes' in data['realms'][0])):
     data_probe_specs=data['realms'][0]['data_probes']['specifications']
+    # Stuff
     for spec in data_probe_specs:
         for plane in spec['plane_specifications']:
             name   = plane['name']
@@ -230,7 +262,9 @@ if (plotturbines and 'actuator' in data['realms'][0]):
         turbxy   = actuatorsection[turbname]['turbine_hub_pos']
         basexy   = actuatorsection[turbname]['turbine_base_pos']
         fastfile = actuatorsection[turbname]['fast_input_filename']
-        EDFile=eval(readFASTfile(fastfile, 'EDFile'))
+        loadfastfile = checkfilepath(fastfile, basepath)
+        fstbasepath=os.path.dirname(loadfastfile)
+        EDFile=checkfilepath(eval(readFASTfile(loadfastfile, 'EDFile')), fstbasepath)
         TipRad=float(readFASTfile(EDFile, 'TipRad'))
         NacYaw=float(readFASTfile(EDFile, 'NacYaw'))
         print(EDFile, TipRad, NacYaw)
