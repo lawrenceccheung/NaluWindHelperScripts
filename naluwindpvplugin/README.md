@@ -44,7 +44,7 @@ Paraview.  It doesn't get automatically loaded.
 ## Usage
 ### Loading the input file
 1.  Go to the `Sources` menu, then look for `Nalu Wind Source` under
-    theh `Alphabetical` category.
+    the `Alphabetical` category.
 
 2.  In the properties tab, select the right input file in the `YAML
     file` input.
@@ -88,12 +88,13 @@ A sample of what should be displayed is here:
 ## Developer notes
 
 The plugin is written in Python, and is then inserted into an xml file
-which Paraview can understand.
+which Paraview can use as a plugin..
 
-If you want to change the plugin, edit the
+If you want to change the code, edit the
 [embedpython.py](embedpython.py) file, then run the `createpvxml.sh`
 script to generate the xml:
 
 ```bash
+$ vi embedpython.py
 $ ./createpvxml.sh
 ```
