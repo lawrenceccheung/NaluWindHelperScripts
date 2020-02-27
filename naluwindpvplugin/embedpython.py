@@ -2,6 +2,7 @@ import os, json
 import sys
 import numpy as np
 import paraview.simple as pvs
+import tempfile
 
 # NOTE NOTE NOTE: do not use the double-quotation mark in this file.
 # it will mess up the xml embedding. Single quotes are fine.
@@ -173,24 +174,29 @@ def checkfileexists(filename):
 
 def fixslash(filename):
     return filename.replace(os.sep, '/')
-    
+
+debug=True    
+
 # Quit if there's nothing in yaml_file yet
 if (len(yaml_file)==0): return
 
 basepath=fixslash(os.path.dirname(fixslash(yaml_file)))
-#basepath=basepath.replace(os.sep,'/')
 
-temppyfile=basepath+'/tempexec.py'
+tempf      =tempfile.NamedTemporaryFile(mode='w+t', suffix='.py')
+temppyfile =tempf.name #basepath+'/tempexec.py'
 pythonexe=fixslash(python_exe)
+
 
 # Read the yaml file, convert it to json, and read that as a string
 filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f);  sys.stdout.write(json.dumps(data, indent=2));'
-f=open(temppyfile, 'w')
-f.write(filestring%fixslash(yaml_file))
-f.close()
+#f=open(temppyfile, 'w')
+tempf.writelines(filestring%fixslash(yaml_file))
+tempf.seek(0)
+#f.close()
 
-print('\npython exe is %s'%pythonexe, file=sys.stderr)
-print('\ntemp py file is %s'%temppyfile, file=sys.stderr)
+if debug:
+    print('\npython exe is %s'%pythonexe, file=sys.stderr)
+    print('\ntemp py file is %s'%temppyfile, file=sys.stderr)
 
 #print(filestring)
 #stream=os.popen('%s %s; rm %s'%(python_exe, temppyfile, temppyfile))
@@ -199,10 +205,13 @@ stream=os.popen('%s %s'%(pythonexe, temppyfile))
 #stream=os.popen('python tempexec.py')
 #stream=os.popen(cmdstring)
 output=stream.read()
-print('Output of exe is:\n', file=sys.stderr)
-print(output+'\n', file=sys.stderr)
+if debug:
+    print('Output of exe is:\n', file=sys.stderr)
+    print(output+'\n', file=sys.stderr)
 data=json.loads(output)
 #print(json.dumps(data, indent=2))
+
+tempf.close()
 
 pdo = self.GetPolyDataOutput()
 

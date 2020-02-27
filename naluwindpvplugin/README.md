@@ -19,8 +19,10 @@ be fixed later.
 
 ### What you need
 - [Paraview](https://www.paraview.org/) (obviously).  Plug in tested
-  on version 5.8.
+  on version 5.8 on linux and windows.
 - The [plugin xml](naluwindplugin.xml) file
+- A working python installation that can load the `pyyaml` package. 
+  If you don't have one, you can get it from [WinPython](https://winpython.github.io/)
 
 ### Steps
 1.  Download the [naluwindplugin.xml](naluwindplugin.xml) xml file to
@@ -63,7 +65,11 @@ Paraview.  It doesn't get automatically loaded.
 | Plot refinement windows           | Ignore for now.  This does nothing                   |
 
 
-4.  Hit `Apply` button.  After the input file gets loaded, it should
+4.  In the `Python executable` input, choose the location of the python 
+    executable.  For linux, the default 'python' should be acceptable most
+    of the time.
+
+5.  Hit `Apply` button.  After the input file gets loaded, it should
     create a number of objecs in the pipeline browser:  
 	
 <img src="images/pipeline.png" alt="pipeline" width="400"/>
