@@ -175,14 +175,14 @@ def checkfileexists(filename):
 def fixslash(filename):
     return filename.replace(os.sep, '/')
 
-debug=True    
+debug=False
 
 # Quit if there's nothing in yaml_file yet
 if (len(yaml_file)==0): return
 
 basepath=fixslash(os.path.dirname(fixslash(yaml_file)))
 
-tempf      =tempfile.NamedTemporaryFile(mode='w+t', suffix='.py')
+tempf      =tempfile.NamedTemporaryFile(mode='w+t', suffix='.py', delete=False)
 temppyfile =tempf.name #basepath+'/tempexec.py'
 pythonexe=fixslash(python_exe)
 
@@ -192,6 +192,9 @@ filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f);  sys.
 #f=open(temppyfile, 'w')
 tempf.writelines(filestring%fixslash(yaml_file))
 tempf.seek(0)
+tempf.flush()
+tempf.close()
+
 #f.close()
 
 if debug:
@@ -211,7 +214,6 @@ if debug:
 data=json.loads(output)
 #print(json.dumps(data, indent=2))
 
-tempf.close()
 
 pdo = self.GetPolyDataOutput()
 
