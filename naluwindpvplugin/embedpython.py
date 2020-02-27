@@ -1,4 +1,5 @@
 import os, json
+import sys
 import numpy as np
 import paraview.simple as pvs
 
@@ -167,25 +168,39 @@ def checkfileexists(filename):
     if os.path.isfile(filename):
         return True
     else:
-        print('WARNING: file does not exist: %s'%filename)        
+        print('WARNING: file does not exist: %s'%filename, file=sys.stderr)        
         return False
 
+def fixslash(filename):
+    return filename.replace(os.sep, '/')
+    
 # Quit if there's nothing in yaml_file yet
 if (len(yaml_file)==0): return
 
-basepath=os.path.dirname(yaml_file)
+basepath=fixslash(os.path.dirname(fixslash(yaml_file)))
+#basepath=basepath.replace(os.sep,'/')
+
+temppyfile=basepath+'/tempexec.py'
+pythonexe=fixslash(python_exe)
 
 # Read the yaml file, convert it to json, and read that as a string
 filestring='import json, yaml, sys; f=open(\\\'%s\\\'); data=yaml.load(f);  sys.stdout.write(json.dumps(data, indent=2));'
-f=open('tempexec.py', 'w')
-f.write(filestring%yaml_file)
+f=open(temppyfile, 'w')
+f.write(filestring%fixslash(yaml_file))
 f.close()
 
+print('\npython exe is %s'%pythonexe, file=sys.stderr)
+print('\ntemp py file is %s'%temppyfile, file=sys.stderr)
+
 #print(filestring)
-stream=os.popen('python tempexec.py; rm tempexec.py')
+#stream=os.popen('%s %s; rm %s'%(python_exe, temppyfile, temppyfile))
+stream=os.popen('%s %s'%(pythonexe, temppyfile))
+#stream=os.popen('python tempexec.py; rm tempexec.py')
 #stream=os.popen('python tempexec.py')
 #stream=os.popen(cmdstring)
 output=stream.read()
+print('Output of exe is:\n', file=sys.stderr)
+print(output+'\n', file=sys.stderr)
 data=json.loads(output)
 #print(json.dumps(data, indent=2))
 
@@ -210,12 +225,12 @@ if ((plotexomesh) and ('mesh' in data['realms'][0])):
     root_ext = os.path.splitext(inputmeshfilename)
     if (len(root_ext)>1):
         if ((root_ext[1] != '.exo') and (root_ext[1] != '.e')):
-            print('Cannot load exo mesh from: %s'%inputmeshfilename)        
-            print('Possibly not an exodus file')
+            print('Cannot load exo mesh from: %s'%inputmeshfilename, file=sys.stderr)        
+            print('Possibly not an exodus file', file=sys.stderr)
             plotexomesh = False
-    meshfilename = checkfilepath(inputmeshfilename, basepath)
-    if (not checkfileexists(inputmeshfilename)):
-        print('Cannot load exo mesh from: %s'%inputmeshfilename)        
+    meshfilename = checkfilepath(fixslash(inputmeshfilename), basepath)
+    if (not checkfileexists(meshfilename)):
+        print('Cannot load exo mesh from: %s'%meshfilename, file=sys.stderr)        
         plotexomesh = False
     if plotexomesh:
         print('Loading exo mesh from: %s'%meshfilename)
@@ -264,9 +279,9 @@ if (plotturbines and 'actuator' in data['realms'][0]):
         turbxy   = actuatorsection[turbname]['turbine_hub_pos']
         basexy   = actuatorsection[turbname]['turbine_base_pos']
         fastfile = actuatorsection[turbname]['fast_input_filename']
-        loadfastfile = checkfilepath(fastfile, basepath)
+        loadfastfile = checkfilepath(fixslash(fastfile), basepath)
         fstbasepath=os.path.dirname(loadfastfile)
-        EDFile=checkfilepath(eval(readFASTfile(loadfastfile, 'EDFile')), fstbasepath)
+        EDFile=fixslash(checkfilepath(eval(readFASTfile(loadfastfile, 'EDFile')), fstbasepath))
         TipRad=float(readFASTfile(EDFile, 'TipRad'))
         NacYaw=float(readFASTfile(EDFile, 'NacYaw'))
         print(EDFile, TipRad, NacYaw)

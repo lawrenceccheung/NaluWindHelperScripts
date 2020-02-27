@@ -96,6 +96,18 @@
         <BooleanDomain name="bool"/>
       </IntVectorProperty>
 
+      <StringVectorProperty 
+	  name="python_exe" 
+	  label="Python executable" 
+	  initial_string="python_exe" 
+	  command="SetParameter" 
+	  animateable="1" 
+	  default_values="python" 
+	  number_of_elements="1">
+        <Documentation>Name of python executable</Documentation>
+	<FileListDomain name="files"/>
+      </StringVectorProperty>
+
      <!-- python script references a variable "numPts" 
           we expose this as a property allowing the user to set it 
      <StringVectorProperty
