@@ -39,7 +39,7 @@
         name="Script" 
         command="SetScript"
         number_of_elements="1"
-	default_values="REPLACEPYTHON"
+	default_values="REPLACESAMPLEPYTHON"
         panel_visibility="advanced">
        <Hints>
          <Widget type="multi_line"/>

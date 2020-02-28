@@ -2,6 +2,7 @@ import os, sys
 import glob
 import numpy as np
 import paraview.simple as pvs
+import gzip
 
 # group the list of variables
 def groupvars(allvarlist):
@@ -111,9 +112,11 @@ def getFileTime(filename):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
+        timestring=timestring.decode('utf-8')
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
+    #if verbose: print('timestring = ',timestring)
     time=float(timestring.replace(',',''))
     return time
 
@@ -121,8 +124,8 @@ def getHeaders(filename):
     fname, fext = os.path.splitext(filename)
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
-            timestring = fp.readline().strip().split()[1]
-            headers    = fp.readline().strip().split()[1:]
+            timestring = fp.readline().strip().decode('utf-8').split()[1]
+            headers    = fp.readline().strip().decode('utf-8').split()[1:]
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
@@ -131,7 +134,7 @@ def getHeaders(filename):
     return headers
 
 # Get the list of files and times
-allfiles=sorted(glob.glob(plane_files))
+allfiles=sorted(glob.glob(plane_files.replace(os.sep, '/')))
 print(allfiles)
 timeSteps = [getFileTime(x) for x in allfiles]
 

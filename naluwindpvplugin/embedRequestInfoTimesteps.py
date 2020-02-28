@@ -7,13 +7,15 @@ def getFileTime(filename):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
+        timestring=timestring.decode('utf-8')
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
+    #print('timestring = ',timestring)
     time=float(timestring.replace(',',''))
     return time
 
-allfiles=sorted(glob.glob(plane_files))
+allfiles=sorted(glob.glob(plane_files.replace(os.sep, '/')))
 if verbose: print(allfiles)
 print('Loading timesteps from files')
 timeSteps = [getFileTime(x) for x in allfiles]
