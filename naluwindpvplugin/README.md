@@ -18,7 +18,7 @@ plot all of the objects in the domain, including:
 Yes, I know the turbines look like lollipops right now, but that is to
 be fixed later.
 
-**Contents**
+## Contents
 * [Installation](#installation)
   - [What you need](#what-you-need)
   - [Steps](#steps)
@@ -32,8 +32,12 @@ be fixed later.
 - [Paraview](https://www.paraview.org/) (obviously).  Plug in tested
   on version 5.8 on linux and windows.
 - The [plugin xml](naluwindplugin.xml) file
-- A working python installation that can load the `pyyaml` package. 
-  If you don't have one, you can get it from [WinPython](https://winpython.github.io/)
+- A working python installation that can load the `pyyaml` package.
+  This is needed for the input file plugin (because `pvpython` doesn't
+  include the package).  If you don't have an external python install,
+  you can get it from the [python
+  website](https://www.python.org/downloads/) or
+  [WinPython](https://winpython.github.io/)
 
 ### Steps
 1.  Download the [naluwindplugin.xml](naluwindplugin.xml) xml file to
@@ -51,18 +55,22 @@ be fixed later.
 	If all goes well, you should see the `naluwindplugin` and `Loaded`
     status under the list of plugins.
 
-**Note**: You have to manually reload the plugin every time you start
-Paraview.  It doesn't get automatically loaded.
+**Note**: If you want to automatically reload the plugin everything
+you start Paraview, click on the triangle to expand the plugin, and
+then check "Auto Load".  Otherwise you will need to manually reload
+the plugin.  
+
+<img src="images/auto_reload.png" alt="properties" width="250"/>
 
 ## Using Nalu Input File Plugin
 ### Loading the input file
-1.  Go to the `Sources` menu, then look for `Nalu Wind Source` under
+1.  Go to the `Sources` menu, then look for `Nalu Wind Input File` under
     the `Alphabetical` category.
 
 2.  In the properties tab, select the right input file in the `YAML
     file` input.
 
-<img src="images/plugin_properties.png" alt="properties" width="400"/>
+<img src="images/inputfile_plugin_properties.png" alt="properties" width="400"/>
 
 3.  In the checklist, check which items you wish to plot.
 
@@ -102,6 +110,32 @@ A sample of what should be displayed is here:
 <img src="images/paraview_loadedimage.png" alt="pipeline" width="600"/>
 
 ## Using Sample Plane Plugin
+1.  Go to the `Sources` menu, then look for `Nalu Wind Sampleplane` under
+    the `Alphabetical` category.
+
+2.  In the properties tab, choose the sample plane file in the `Plane
+    files` input:
+	
+	<img src="images/sampleplane_plugin_properties.png" alt="properties" width="400"/>
+
+	**Note**: the selection box usually only lets you choose one file,
+    but you can load multiple files by using a regular expression.
+    For instance, you can put in `HHplane_*_0.dat` or
+    `HHplane_00[0-3]*.dat`.
+	
+3.  In the `Planes to plot` box, put in the planes you want to plot in
+    Paraview.  You can put in `All` to just plot all planes, or a
+    comma/space delimited list like `0, 1, 5 6` to plot only those
+    planes.
+	
+4.  Hit the `Apply` button to load the sample planes.  If you load
+    more than one sample plane (corresponding to different times),
+    you'll see that the different times and iterations available in
+    the `Time` toolbar.
+	
+**Note**: You can load both the plain text (`*.dat`) and gzip
+compressed (`*.dat.gz`) sample planes.  The plugin will decompress as
+needed.
 
 ## Developer notes
 
