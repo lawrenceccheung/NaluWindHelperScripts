@@ -1,19 +1,30 @@
 # Nalu-Wind plugin for Paraview
 
-A Paraview plugin to visualize the setup and domain of your Nalu-Wind
-simulation.
+A Paraview plugin to visualize your Nalu-Wind domain and sample plane
+outputs.
 
 <img src="images/domain1.png" alt="domain1" width="500"/>
+<img src="images/sampleplane1.png" alt="Sample Plane" width="350"/>
 
-With this plugin, you can load your Nalu-Wind input file, FAST setup
-files, and have paraview plot all of the objects in the domain,
-including:
- - The domain mesh
- - Sample planes
- - The turbine placements, sizes, and yaw
+With this plugin, you can:
+* Load your Nalu-Wind input file, FAST setup files, and have paraview
+plot all of the objects in the domain, including:
+  - The domain mesh
+  - Sample plane geometry
+  - The turbine placements, sizes, and yaw
+* Load your sample planes 
+  - Both uncompressed (.dat) and compressed form (.dat.gz)
 
 Yes, I know the turbines look like lollipops right now, but that is to
 be fixed later.
+
+**Contents**
+* [Installation](#installation)
+  - [What you need](#what-you-need)
+  - [Steps](#steps)
+* [Using Nalu Input File Plugin](#using-nalu-input-file-plugin)
+* [Using Sample Plane Plugin](#using-sample-plane-plugin)
+* [Developer notes](#developer-notes)
 
 ## Installation
 
@@ -43,7 +54,7 @@ be fixed later.
 **Note**: You have to manually reload the plugin every time you start
 Paraview.  It doesn't get automatically loaded.
 
-## Usage
+## Using Nalu Input File Plugin
 ### Loading the input file
 1.  Go to the `Sources` menu, then look for `Nalu Wind Source` under
     the `Alphabetical` category.
@@ -90,6 +101,7 @@ A sample of what should be displayed is here:
 
 <img src="images/paraview_loadedimage.png" alt="pipeline" width="600"/>
 
+## Using Sample Plane Plugin
 
 ## Developer notes
 
