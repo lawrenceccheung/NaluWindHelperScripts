@@ -140,11 +140,14 @@ needed.
 ## Developer notes
 
 The plugin is written in Python, and is then inserted into an xml file
-which Paraview can use as a plugin..
+which Paraview can use as a plugin.
 
-If you want to change the code, edit the
-[embedpython.py](embedpython.py) file, then run the `createpvxml.sh`
-script to generate the xml:
+If you want to change the code, edit the python files
+- [embedpython.py](embedpython.py)
+- [embedPlotPlane.py](embedPlotPlane.py)
+- [embedRequestInfoTempsteps.py](embedRequestInfoTempsteps.py)  
+
+then run the `createplugin.sh` to generate the xml:
 
 ```bash
 $ vi embedpython.py
