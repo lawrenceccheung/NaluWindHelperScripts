@@ -175,7 +175,7 @@ def checkfileexists(filename):
 def fixslash(filename):
     return filename.replace(os.sep, '/')
 
-debug=False
+debug=verbose
 
 # Quit if there's nothing in yaml_file yet
 if (len(yaml_file)==0): return

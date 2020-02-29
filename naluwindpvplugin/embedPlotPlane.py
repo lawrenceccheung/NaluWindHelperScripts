@@ -23,7 +23,7 @@ def makePlane(planefile, planes=[]):
     headers=getHeaders(planefile)
     numvariables = len(headers)-6
     groupedvars=groupvars(headers[6:])
-    print(groupedvars)
+    if verbose: print(groupedvars)
     allvars   = []
     # for ivar in range(0, numvariables):
     #     print('Added variable ',headers[6+ivar])
@@ -117,6 +117,7 @@ def getFileTime(filename):
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
     #if verbose: print('timestring = ',timestring)
+    print('%s %s'%(filename, timestring))
     time=float(timestring.replace(',',''))
     return time
 
