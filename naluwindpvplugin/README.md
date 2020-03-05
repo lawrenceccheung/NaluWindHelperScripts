@@ -72,6 +72,13 @@ the plugin.
 
 <img src="images/inputfile_plugin_properties.png" alt="properties" width="400"/>
 
+**Note**: All of the assocated files, like the mesh `.exo`, turbine
+	`.fst`, and FAST files should be in the expected location where
+	the input file can find them. If you copied over the input file
+	from somewhere else, don't forget to copy over those other files
+	if you want the plugin to display those objects.
+	
+
 3.  In the checklist, check which items you wish to plot.
 
 | Item                              | Description                                          |
