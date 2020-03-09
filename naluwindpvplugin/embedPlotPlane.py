@@ -1,7 +1,6 @@
 import os, sys
 import glob
 import numpy as np
-import paraview.simple as pvs
 import gzip
 
 # group the list of variables
@@ -117,7 +116,7 @@ def getFileTime(filename):
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
     #if verbose: print('timestring = ',timestring)
-    print('%s %s'%(filename, timestring))
+    if verbose: print('%s %s'%(filename, timestring))
     time=float(timestring.replace(',',''))
     return time
 
@@ -136,7 +135,7 @@ def getHeaders(filename):
 
 # Get the list of files and times
 allfiles=sorted(glob.glob(plane_files.replace(os.sep, '/')))
-print(allfiles)
+if verbose: print(allfiles)
 timeSteps = [getFileTime(x) for x in allfiles]
 
 outInfo = self.GetOutputInformation(0)
