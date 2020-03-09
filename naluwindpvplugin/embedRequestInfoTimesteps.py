@@ -12,7 +12,7 @@ def getFileTime(filename):
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
     #print('timestring = ',timestring)
-    print('%s %s'%(filename, timestring))
+    if verbose: print('%s %s'%(filename, timestring))
     time=float(timestring.replace(',',''))
     return time
 
