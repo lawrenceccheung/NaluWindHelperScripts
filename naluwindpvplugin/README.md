@@ -12,8 +12,10 @@ plot all of the objects in the domain, including:
   - The domain mesh
   - Sample plane geometry
   - The turbine placements, sizes, and yaw
+  - Currently **does not** work in client/server mode
 * Load your sample planes 
   - Both uncompressed (.dat) and compressed form (.dat.gz)
+  - Works in client/server mode
 
 Yes, I know the turbines look like lollipops right now, but that is to
 be fixed later.
@@ -54,6 +56,11 @@ be fixed later.
 	
 	If all goes well, you should see the `naluwindplugin` and `Loaded`
     status under the list of plugins.
+
+6.  If you're running Paraview in client/server mode, make sure to
+    load the plugin under the left hand `Remote Plugins` side too.
+    Both the local and remote should have the sample plugin loaded to
+    work in this instance.
 
 **Note**: If you want to automatically reload the plugin everything
 you start Paraview, click on the triangle to expand the plugin, and
