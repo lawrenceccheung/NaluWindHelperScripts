@@ -136,6 +136,9 @@ else:
 # Get surface roughness
 z0=getdict2(yamldata['realms'][0]['boundary_conditions'], 'wall_boundary_condition')['wall_user_data']['roughness_height']
 
+# Get upper temperature gradient
+zhiTgrad=getdict2(yamldata['realms'][0]['boundary_conditions'], 'abltop_boundary_condition')['abltop_user_data']['normal_temperature_gradient']
+
 # viscosity
 viscosityyaml = getdicwithname(yamldata['realms'][0]['material_properties']['specifications'], 'viscosity')
 viscosity = viscosityyaml['value']
@@ -169,20 +172,20 @@ cfl               = 0.95
 AMRdefaults=[
     ['io.KE_int',        1, ''],
     ['io.line_plot_int', 1, ''],
-    ['amr.plt_tracer',   1, ''],
+#    ['amr.plt_tracer',   1, ''],
 ]
 
 # Physics defaults
 physicsdefaults = [
-    ['incflo.use_godonuv', 1,    ''],
+    ['incflo.use_godunov', 1,    ''],
     ['incflo.physics',    'ABL', ''],
 ]
 
 # verbose defaults
 verbosedefaults = [
     ['incflo.verbose',    3, 'incflo.level'],
-    ['diffusion.verbose', 0, 'DiffusionEquation'],
-    ['mac.verbose',       0, 'MacProjector'],
+#    ['diffusion.verbose', 0, 'DiffusionEquation'],
+#    ['mac.verbose',       0, 'MacProjector'],
 ]
 
 # tolerances and debug defaults
@@ -279,6 +282,10 @@ writeAMRparam('geometry.prob_lo',      x0,             outfile, comment="Lo corn
 writeAMRparam('geometry.prob_hi',      x1,             outfile, comment="Hi corner coordinates")
 writeAMRparam('geometry.is_periodic',  is_periodic,    outfile, comment="Periodicity x y z (0/1)")
 writeAMRparam([], [], outfile,   comment="\n# Boundary conditions", commentonly=True)
+writeAMRparam('zlo.type',             'wall_model',    outfile, isstring=True)
+writeAMRparam('zlo.temperature',       0.0,            outfile)
+writeAMRparam('zhi.type',             'slip_wall',     outfile, isstring=True)
+writeAMRparam('zhi.temperature',       zhiTgrad,       outfile)
 
 verbheader="""
 #---------------------------------------#
