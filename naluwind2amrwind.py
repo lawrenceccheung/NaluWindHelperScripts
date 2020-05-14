@@ -2,10 +2,22 @@
 #
 # Script to convert from a Nalu-wind YAML file to an AMR-wind input file
 #
+#
+# usage: naluwind2amrwind.py [-h] [--outfile OUTFILE] yamlfile
+#
+# positional arguments:
+#   yamlfile
+#
+# optional arguments:
+#   -h, --help         show this help message and exit
+#   --outfile OUTFILE  write output to this file
 
+
+# In case anybody tries to use print() in python2
 from __future__ import print_function
 
 import sys
+import math
 import argparse
 
 # Load the appropriate yaml reader
@@ -23,21 +35,24 @@ try:
 except:
     stuff=0
 
-# return the dictionary corresponding to key
+# Return the dictionary corresponding to key
+#  listdic = list of dictionaries, indexed by key
 def getdict(listdic, key):
     for dic in listdic:
         if key in dic: return dic[key]
     return []
 
+# Return the dictionary which contains a given key
+#  listdic = list of dictionaries, one of which might have key
 def getdict2(listdic, key):
     for dic in listdic:
         if key in dic: return dic
     return []
 
-#
-def getdicwithname(listdic, name):
+# Return the dictionary which has keyname equal to va
+def getdicwithname(listdic, val, keyname='name'):
     for dic in listdic:
-        if dic['name'] == name: return dic
+        if dic[keyname] == val: return dic
     print("Cannot find entry with name: "+name)
     sys.exit(1) # Should not get here
     return 
@@ -45,11 +60,19 @@ def getdicwithname(listdic, name):
 # ----------
 # Write a parameter to the amr input file
 # ----------
+#  param:    parameter name in AMR-wind file
+#  data:     data to be written
+#  outfile:  file handle (or sys.stdout)
+#  isstring: if True, will wrap quotes around the string data
+#  comment:  optional comment after data
+#  commentonly: if True, don't write any data, just the comment
+#  prefix:   Add prefix to the beginning of the line 
 def writeAMRparam(param, data, outfile,
-                  isstring=False, comment="", commentonly=False):
+                  isstring=False, comment="", commentonly=False, 
+                  prefix=''):
     if commentonly:
         print(comment, file=outfile)        
-    else:
+    elif data != None:  # Do not write anything if data is empty
         # -- construct the payload string --
         if isinstance(data, list):   datalist=data
         else:                        datalist=[data]
@@ -59,24 +82,27 @@ def writeAMRparam(param, data, outfile,
         if len(comment)>0:           commentstring="# "+comment
         else:                        commentstring=""
         # -- Add the full string --
-        fullstring = '%-30s = %-30s %s'%(param, datastring, commentstring)
+        fullstring = prefix+'%-30s = %-30s %s'%(param, datastring, commentstring)
         print(fullstring, file=outfile)
     return
     
 
-# Check the command line arguments
-parser = argparse.ArgumentParser(description='Convert Nalu-Wind input to AMR-wind')
-parser.add_argument('--outfile', default='', help="Output file")
-parser.add_argument('yamlfile', nargs='+')
+### ========== Set up files and input/output args  ==================
+
+# Load the command line arguments
+parser = argparse.ArgumentParser(description='Convert Nalu-Wind input file to AMR-wind input file')
+parser.add_argument('--outfile', default='', help="write output to this file")
+parser.add_argument('yamlfile') #, nargs='+')
 args=parser.parse_args()
 
 # Load the yaml file
-infile    = args.yamlfile[0]
+infile    = args.yamlfile
 with open(infile) as fp:
     #yamldata=yaml.load(fp, Loader=yaml.FullLoader)
     yamldata=yaml.load(fp)
 
 # Set up the output stream
+#  Either write to outfile, or write to screen
 if len(args.outfile)>0:
     outfile=open(args.outfile, 'w')
 else:
@@ -92,9 +118,11 @@ steptype = timeinputyaml['time_stepping_type']
 stop_time=fixed_dt*max_step
 
 ### --- output and restart ----
-outputyaml = yamldata['realms'][0]['output']
-plot_interval       = outputyaml['output_frequency']
-checkpoint_interval = yamldata['realms'][0]['restart']['restart_frequency']
+outputyaml          = yamldata['realms'][0]['output']
+try:    plot_interval       = outputyaml['output_frequency']
+except: plot_interval       = 0
+try:    checkpoint_interval = yamldata['realms'][0]['restart']['restart_frequency']
+except: checkpoint_interval = 0
 
 ### --- Set the mesh and grid sizes ----
 if 'nalu_abl_mesh' in yamldata:
@@ -117,7 +145,6 @@ else:
 ### -- Set physics ---
 soloptsyaml = yamldata['realms'][0]['solution_options']
 gravity   = getdict(soloptsyaml['options'], 'user_constants')['gravity']
-latitude  = getdict(soloptsyaml['options'], 'user_constants')['latitude']
 density   = getdict(soloptsyaml['options'], 'user_constants')['reference_density']
 temp      = getdict(soloptsyaml['options'], 'user_constants')['reference_temperature']
 sourceterms = getdict(soloptsyaml['options'], 'source_terms')['momentum']
@@ -127,26 +154,41 @@ laminar_prandtl    = getdict(soloptsyaml['options'], 'laminar_prandtl')['enthalp
 turbulent_prandtl  = getdict(soloptsyaml['options'], 'turbulent_prandtl')['enthalpy']
 turbmodel = soloptsyaml['turbulence_model']
 
+# coriolis parameters
+latitude  = getdict(soloptsyaml['options'], 'user_constants')['latitude']
+try:    east_vector  = getdict(soloptsyaml['options'], 'user_constants')['east_vector']
+except: east_vector  = None
+try:    north_vector = getdict(soloptsyaml['options'], 'user_constants')['north_vector']
+except: north_vector = None
+try:    secperrev    = 2*math.pi/getdict(soloptsyaml['options'], 'user_constants')['earth_angular_velocity']
+except: secperrev    = None
+
+# Turbulence model
 if turbmodel != "smagorinsky":
-    print("AMR-wind only supports smagorinsky model, not "+turbmodel)
+    print("AMR-wind only supports smagorinsky model (so far), not "+turbmodel)
     sys.exit(1)
 else:
     turbmodel = "Smagorinsky"
 
 # Get surface roughness
-z0=getdict2(yamldata['realms'][0]['boundary_conditions'], 'wall_boundary_condition')['wall_user_data']['roughness_height']
-
+z0      = getdict2(yamldata['realms'][0]['boundary_conditions'], 'wall_boundary_condition')['wall_user_data']['roughness_height']
+zlotemp = getdict2(yamldata['realms'][0]['boundary_conditions'], 'wall_boundary_condition')['wall_user_data']['reference_temperature'] - temp
 # Get upper temperature gradient
 zhiTgrad=getdict2(yamldata['realms'][0]['boundary_conditions'], 'abltop_boundary_condition')['abltop_user_data']['normal_temperature_gradient']
 
 # viscosity
 viscosityyaml = getdicwithname(yamldata['realms'][0]['material_properties']['specifications'], 'viscosity')
-viscosity = viscosityyaml['value']
+viscosity     = viscosityyaml['value']
 
+# Get forcing terms
 forcingterms =  getdict(soloptsyaml['options'], 'source_terms')['momentum']
 # Remap the forcing terms to AMR-wind forcing terms
-#print(forcingterms)
-forcingterms = ["BoussinesqBuoyancy","CoriolisForcing","ABLForcing"]
+forcingdictmap = { 'buoyancy_boussinesq':'BoussinesqBuoyancy', 
+                   'EarthCoriolis':'CoriolisForcing',
+                   'abl_forcing':'ABLForcing'
+               }
+forcingterms = [forcingdictmap[x] for x in forcingterms]
+#forcingterms = ["BoussinesqBuoyancy","CoriolisForcing","ABLForcing"]
 
 # ABL forcing
 ablyaml = yamldata['realms'][0]['abl_forcing']['momentum']
@@ -172,7 +214,6 @@ cfl               = 0.95
 AMRdefaults=[
     ['io.KE_int',        1, ''],
     ['io.line_plot_int', 1, ''],
-#    ['amr.plt_tracer',   1, ''],
 ]
 
 # Physics defaults
@@ -184,8 +225,6 @@ physicsdefaults = [
 # verbose defaults
 verbosedefaults = [
     ['incflo.verbose',    3, 'incflo.level'],
-#    ['diffusion.verbose', 0, 'DiffusionEquation'],
-#    ['mac.verbose',       0, 'MacProjector'],
 ]
 
 # tolerances and debug defaults
@@ -250,7 +289,6 @@ writeAMRparam('Smagorinsky_coeffs.Cs',       smagCs,            outfile)
 writeAMRparam([], [], outfile,   comment="\n# ABL forcing", commentonly=True)
 writeAMRparam('ICNS.source_terms', forcingterms,                outfile)
 writeAMRparam('BoussinesqBuoyancy.reference_temperature', temp, outfile)
-writeAMRparam('CoriolisForcing.latitude',    latitude,          outfile)
 writeAMRparam('ABLForcing.abl_forcing_height', abl_forcing_height, outfile)
 writeAMRparam('incflo.velocity',               abl_velocity,    outfile)
 
@@ -259,6 +297,13 @@ writeAMRparam('ABL.temperature_heights', tempheights[1:], outfile)
 writeAMRparam('ABL.temperature_values',  tempvals[1:],    outfile)
 writeAMRparam('ABL.kappa',               kappa,           outfile)
 writeAMRparam('ABL.surface_roughness_z0', z0,             outfile)
+
+writeAMRparam([], [], outfile,   comment="# Coriolis forcing", commentonly=True)
+writeAMRparam('CoriolisForcing.latitude',     latitude,          outfile)
+writeAMRparam('CoriolisForcing.east_vector',  east_vector,       outfile)
+writeAMRparam('CoriolisForcing.north_vector', north_vector,      outfile)
+writeAMRparam('CoriolisForcing.rotational_time_period', secperrev,   outfile)
+
 
 for default in physicsdefaults:
     writeAMRparam(default[0], default[1], outfile, comment=default[2])
@@ -283,7 +328,7 @@ writeAMRparam('geometry.prob_hi',      x1,             outfile, comment="Hi corn
 writeAMRparam('geometry.is_periodic',  is_periodic,    outfile, comment="Periodicity x y z (0/1)")
 writeAMRparam([], [], outfile,   comment="\n# Boundary conditions", commentonly=True)
 writeAMRparam('zlo.type',             'wall_model',    outfile, isstring=True)
-writeAMRparam('zlo.temperature',       0.0,            outfile)
+writeAMRparam('zlo.temperature',       zlotemp,        outfile)
 writeAMRparam('zhi.type',             'slip_wall',     outfile, isstring=True)
 writeAMRparam('zhi.temperature',       zhiTgrad,       outfile)
 
@@ -302,7 +347,9 @@ debugheader="""
 #---------------------------------------#
 """
 writeAMRparam([], [], outfile,   comment=debugheader[:-1], commentonly=True)
-for default in debugdefaults:
-    writeAMRparam(default[0], default[1], outfile, comment=default[2])
+writeAMRparam([], [], outfile,   comment="##possible debugging parameters", commentonly=True)
+for default in debugdefaults:  # write defaults (as comments)
+    writeAMRparam(default[0], default[1], outfile, comment=default[2], prefix='# ')
 
+### ========== Finished writing out AMR inputfile ==================
 outfile.close()
