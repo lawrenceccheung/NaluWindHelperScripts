@@ -24,11 +24,11 @@ def loadplanefile(filename):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers    = fp.readline().strip().split()[1:]
+            headers    = fp.readline().strip('#').split()[1:]
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers    = fp.readline().strip().split()[1:]
+            headers    = fp.readline().strip('#').split()[1:]
     time=float(timestring)
     #print time, headers
     fp.close()
@@ -47,7 +47,7 @@ def convertfile(filename, planenum=-1, outdir=''):
     basefile=os.path.splitext(filename)[0]
     print("Converting "+filename)
     dat, time, headers=loadplanefile(filename)
-    allvars   = headers[6:]
+    allvars   = headers[5:]
     groupedvars=groupvars(allvars)
     numplanes = int(max(dat[:,0]))+1
     Numj      = int(max(dat[:,1]))+1
