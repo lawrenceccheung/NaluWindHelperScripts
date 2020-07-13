@@ -108,8 +108,10 @@ def outputpng(vtkfile, pngfile, params={}):
     # ---------------------------------------------------
     YTitle = getparam('YTitle', params, 'Y Axis     ')
     XTitle = getparam('XTitle', params, 'X Axis     ')
+    ZTitle = getparam('ZTitle', params, 'Z Axis     ')
     calculator1Display.DataAxesGrid.YTitle = YTitle
     calculator1Display.DataAxesGrid.XTitle = XTitle
+    calculator1Display.DataAxesGrid.ZTitle = ZTitle
 
     # Change some font colors
     axeson = getparam('GridAxesVisibility', params, 1)
@@ -117,15 +119,19 @@ def outputpng(vtkfile, pngfile, params={}):
 
     calculator1Display.DataAxesGrid.XTitleColor = [0.0, 0.0, 0.0]
     calculator1Display.DataAxesGrid.YTitleColor = [0.0, 0.0, 0.0]
-    calculator1Display.DataAxesGrid.AxesToLabel = 3
+    calculator1Display.DataAxesGrid.ZTitleColor = [0.0, 0.0, 0.0]
+    calculator1Display.DataAxesGrid.AxesToLabel = 5 #3
 
     calculator1Display.DataAxesGrid.XLabelColor = [0.0, 0.0, 0.0]
     calculator1Display.DataAxesGrid.YLabelColor = [0.0, 0.0, 0.0]
+    calculator1Display.DataAxesGrid.ZLabelColor = [0.0, 0.0, 0.0]
 
     # Change some font sizes
     fontsize = getparam('fontsize',params,10)
+    calculator1Display.DataAxesGrid.ZTitleFontSize = fontsize
     calculator1Display.DataAxesGrid.YTitleFontSize = fontsize
     calculator1Display.DataAxesGrid.XTitleFontSize = fontsize
+    calculator1Display.DataAxesGrid.ZLabelFontSize = fontsize
     calculator1Display.DataAxesGrid.YLabelFontSize = fontsize
     calculator1Display.DataAxesGrid.XLabelFontSize = fontsize
     
@@ -154,9 +160,22 @@ def outputpng(vtkfile, pngfile, params={}):
 
     # reset view to fit data bounds
     [xmin, xmax, ymin, ymax] = getparam('xylims', params, [0, 6000, 0, 6000])
-    renderView1.ResetCamera(xmin, xmax, ymin, ymax, 20.0, 20.0)
+    renderView1.CameraPosition = [0, 0, 0]
+    renderView1.CameraFocalPoint = [0, 1, 0]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.ResetCamera(xmin, xmax, 15.0, 15.0, ymin, ymax)
     renderView1.Background=[1,1,1]
     renderView1.OrientationAxesVisibility = 0
+
+    renderView1.InteractionMode = '2D'
+    renderView1.ViewSize = getparam('ViewSize', params, [1000,1000]) 
+
+    # current camera placement for renderView1
+    # renderView1.InteractionMode = '2D'
+    # renderView1.CameraPosition = [1500.0, -5465.390189960317, 1000.0]
+    # renderView1.CameraFocalPoint = [1500.0, 1500.0, 1000.0]
+    # renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    # renderView1.CameraParallelScale = 1802.7756377319947
 
     imagesize=getparam('imagesize', params, [1000,1000])
     SaveScreenshot(pngfile, renderView1, ImageResolution=imagesize)
@@ -181,6 +200,7 @@ CPUTIME          = 60
 defaultdict      = {'colorlims':[0, 10],
                     'colorbarpos':[0.85, 0.25],
                     'colormap':'Cool to Warm',
+                    'ZTitle':'Z [m]       ',
                     'XTitle':'X [m]',
                     'YTitle':'Y [m]       ',
                     'xylims':[0, 6000, 0, 6000],

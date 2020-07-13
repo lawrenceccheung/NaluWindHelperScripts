@@ -45,6 +45,7 @@ def groupvars(allvarlist):
 # Convert a file into vtk format    
 def convertfile(filename, planenum=-1, outdir=''):
     basefile=os.path.splitext(filename)[0]
+    headfile, tailfile=os.path.split(basefile)
     print("Converting "+filename)
     dat, time, headers=loadplanefile(filename)
     allvars   = headers[5:]
@@ -66,8 +67,11 @@ def convertfile(filename, planenum=-1, outdir=''):
         planedat  = dat[dat[:,0]==planenum,:]
         Npoints   = (Numi)*(Numj)
         Ncells    = (Numi-1)*(Numj-1)
-        newfile   = basefile+"_plane"+repr(planenum)+".vtk"
-        if len(outdir)>0: newfile = outdir+'/'+newfile
+        if len(outdir)>0: 
+            newfile = tailfile+"_plane"+repr(planenum)+".vtk"
+            newfile = outdir+'/'+newfile
+        else:
+            newfile   = basefile+"_plane"+repr(planenum)+".vtk"
         print(" -> writing "+newfile)
         f = open(newfile,"w")
         # Write the header and coordinates
