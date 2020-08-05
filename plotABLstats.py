@@ -105,6 +105,10 @@ class ABLStatsFileClass():
         # Index - [time, height, (x, y, z)]
         velocity = self.abl_stats.variables['velocity']
 
+        self.u   = velocity[:,:,0]
+        self.v   = velocity[:,:,1]
+        self.w   = velocity[:,:,2]
+
         # Velocity components as a function of time for given height
         self.u_h = interpolate.interp1d(self.heights, velocity[:, :, 0], axis=1)
         self.v_h = interpolate.interp1d(self.heights, velocity[:, :, 1], axis=1)
@@ -324,12 +328,15 @@ def plottkeprofile(data, figax, tlims=[], **kwargs):
     fieldstr='resolved_stress'
     #fieldstr='sfs_stress_tavg'
     uu = data.time_average(field=fieldstr, index=0, times=[t1, t2])
+    uv = data.time_average(field=fieldstr, index=1, times=[t1, t2])
+    uw = data.time_average(field=fieldstr, index=2, times=[t1, t2])
     vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
+    vw = data.time_average(field=fieldstr, index=4, times=[t1, t2])
     ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
     tke = 0.5*(uu+vv+ww)
     if 'exportdata' in kwargs: 
-        headers="z, uu, vv, ww, tke"
-        return np.vstack((z, uu, vv, ww, tke)).transpose(), headers
+        headers="z, uu, uv, uw, vv, vw, ww, tke"
+        return np.vstack((z, uu, uv, uw, vv, vw, ww, tke)).transpose(), headers
     figax.plot(uu, z, '-o', label='uu')
     figax.plot(vv, z, '-o', label='vv')
     figax.plot(ww, z, '-o', label='ww')
@@ -552,7 +559,72 @@ def plotTIprofile(data, figax, tlims=[], **kwargs):
     TI = sqrt(2.0/3.0*tke)/u_mag
     if 'exportdata' in kwargs: 
         return np.vstack((z, TI)).transpose(), "z, TI"
-    figax.plot(TI, z, '-o', label='TKE')
+    figax.plot(TI, z, '-o', label='TI')
+    figax.legend(loc='best')
+    figax.set_xlabel("TI [-]")
+    figax.set_ylabel('z [m]')
+    if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(TI), max(TI), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
+def plotTIstreamwiseprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    time  = data.time
+    z     = data.heights
+    uavg  = data.time_average(field='velocity', index=0, times=[t1, t2])
+    vavg  = data.time_average(field='velocity', index=1, times=[t1, t2])
+    u_mag = np.sqrt(uavg**2 + vavg**2)
+    nx    = uavg/u_mag
+    ny    = vavg/u_mag
+
+    filt   = ((time[:] >= t1) & (time[:] <= t2))
+    # Filtered time
+    t = time[filt]
+    # The total time
+    dt = np.amax(t) - np.amin(t)
+
+    # selected velocities
+    ufilt  = data.u[filt,:]
+    vfilt  = data.v[filt,:]
+
+    ulong       = uavg*nx + vavg*ny
+    #uprimelong  = (ufilt*nx + vfilt*ny) - ulong
+    #uprimelong2 = uprimelong*uprimelong
+    # Compute the time average as an integral
+    #uprime2tavg = np.trapz(uprimelong2, x=t, axis=0) / dt
+    #TIstream    = sqrt(uprime2tavg)/ulong
+
+    # TKE/TI
+    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
+    uv = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
+    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
+    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    tke = 0.5*(uu+vv+ww)
+    TI = sqrt(2.0/3.0*tke)/u_mag
+
+    uprime = sqrt(uu)
+    vprime = sqrt(vv)
+    # === method 1 ====
+    ulongprime = uprime*nx + vprime*ny
+    TIstream = ulongprime/ulong
+    # === method 2 ====
+    ulongprime = sqrt(uu*nx*nx + vv*ny*ny + 2*uv*nx*ny)
+    TIstream = ulongprime/ulong
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, TIstream)).transpose(), "z, TI"
+    figax.plot(TI, z, '-', label='TI (TKE)')
+    figax.plot(TIstream, z, '-o', label='TI (streamwise)')
+
+    #figax.plot(ulong, z, '-', label='Ulong')
+    #figax.plot(u_mag, z, '.', label='Umag')
     figax.legend(loc='best')
     figax.set_xlabel("TI [-]")
     figax.set_ylabel('z [m]')
@@ -647,6 +719,7 @@ allplotfunctions=[["Velocity time trace", plotvelocityhistory, "Vtrace"],
                   ["TKE Profile",         plottkeprofile,      "TKEprof"],
                   ["SFS Profile",         plotSFSprofile,      "SFSstressprof"],
                   ["TI Profile",          plotTIprofile,       "TIprof"],
+                  ["TI Streamwise",       plotTIstreamwiseprofile, "TIstream"],
                   ["Utau history",        plotutauhistory,     "Utauprof"],
                   ["Shear exp. Profile",  plotShearAlpha,      "Alphaprof"],
                   ["Temp time trace",     plottemperaturehistory, "Ttrace"],]
