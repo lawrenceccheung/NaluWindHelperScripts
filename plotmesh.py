@@ -8,61 +8,6 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches     import Rectangle
 import argparse
 
-# Handle arguments
-parser = argparse.ArgumentParser(description='Plot mesh refinement and probe locations')
-parser.add_argument('YAMLFILE',  nargs='+',   help="Parse this yaml file for mesh and refinement information")
-parser.add_argument('--almyaml', default='',  help="Parse ALMYAML for the turbine and probe information")
-parser.add_argument('--slicemeshyaml', default='',  help="Parse SLICEMESHYAML for the slice_mesh specifications")
-args=parser.parse_args()
-
-
-yamlfile=args.YAMLFILE[0]
-almyamlfile=args.almyaml
-slicemeshyaml=args.slicemeshyaml
-# #yamlfile='abl_preprocess.yaml'
-# if len(sys.argv)>1:
-#     yamlfile=sys.argv[1]
-# else:
-#     print 'ARGUMENT REQUIRED'
-#     print ' Usage: %s ABLFILE'%sys.argv[0]
-#     sys.exit(1)
-
-
-
-with open(yamlfile) as stream:
-    try:
-        yamldata=yaml.safe_load(stream)
-    except yaml.YAMLError as exc:
-        print(exc)
-
-
-if 'nalu_preprocess' in yamldata:
-    has_preprocess = True
-else:
-    has_preprocess = False
-
-if has_preprocess:
-    if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
-        # -- turbine locations --
-        turbineXY  = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_locations']
-        turbineDin = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_diameters']
-        turbineHHin= yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_heights']
-        # make sure turbineD is the right size
-        if isinstance(turbineDin, list):  turbineD = turbineDin
-        else:                             turbineD = [turbineDin]*len(turbineXY)
-        # make sure turbineHH is the right size
-        if isinstance(turbineHHin, list):  turbineHH = turbineHHin
-        else:                              turbineHH = [turbineHHin]*len(turbineXY)
-
-        # -- Wind direction --
-        orienttype = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['type']
-        winddir    = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['wind_direction']
-
-        # -- refinement boxes --
-        refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
-
-#print refineboxes
-
 # Rotates a point pt about origin orig
 # Here theta is measured w.r.t. the x-axis
 def rotatepoint(pt, orig, theta):
@@ -229,143 +174,209 @@ def readFASTfile(FASTfile, keyword):
     return
 
 
-# Initialize and plot the base mesh
-# ---------------------------------
-fig, ax = plt.subplots(1)
-
-## Load data from the yamlfile
-if 'nalu_abl_mesh' in yamldata:
-    # -- mesh extents --
-    meshvertices     = yamldata['nalu_abl_mesh']['vertices']
-    x0               = meshvertices[0]
-    x1               = meshvertices[1]
-    
-    # -- mesh dimensions --
-    meshdimensions   = yamldata['nalu_abl_mesh']['mesh_dimensions']
-    plotbasemeshXY(x0, x1, meshdimensions)
-
-
-# Plot the local mesh refinement
-# ---------------------------------
-if has_preprocess:
-    if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
-        # Plot the refinement boxes
-        refinecolors=['c','y','g','r']
-        for iturb, turb in enumerate(turbineXY):
-            for ibox, box in enumerate(refineboxes):
-                boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
-                plotRefineBox(boxXY, refinecolors[ibox])
-
-
-        # Plot the turbines
-        for iturb, turb in enumerate(turbineXY):
-            turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
-            plotXYpoints(turbpts)
-
-        plotwinddirarrow(x0, x1, winddir)
+def getPreprocess(yamldata):
+    if 'nalu_preprocess' in yamldata:
+        has_preprocess = True
     else:
-        print("No local mesh refinement")
+        has_preprocess = False
+
+    if has_preprocess:
+        if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
+            # -- turbine locations --
+            turbineXY  = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_locations']
+            turbineDin = yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_diameters']
+            turbineHHin= yamldata['nalu_preprocess']['mesh_local_refinement']['turbine_heights']
+            # make sure turbineD is the right size
+            if isinstance(turbineDin, list):  turbineD = turbineDin
+            else:                             turbineD = [turbineDin]*len(turbineXY)
+            # make sure turbineHH is the right size
+            if isinstance(turbineHHin, list):  turbineHH = turbineHHin
+            else:                              turbineHH = [turbineHHin]*len(turbineXY)
+
+            # -- Wind direction --
+            orienttype = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['type']
+            winddir    = yamldata['nalu_preprocess']['mesh_local_refinement']['orientation']['wind_direction']
+            
+            # -- refinement boxes --
+            refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
+    return turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes
+
+def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes):
+    """
+    Plot the base mesh and any mesh refinements
+    """
+    if 'nalu_preprocess' in yamldata:
+        has_preprocess = True
+    else:
+        has_preprocess = False
+
+    ## Load data from the yamlfile
+    if 'nalu_abl_mesh' in yamldata:
+        # -- mesh extents --
+        meshvertices     = yamldata['nalu_abl_mesh']['vertices']
+        x0               = meshvertices[0]
+        x1               = meshvertices[1]
+        
+        # -- mesh dimensions --
+        meshdimensions   = yamldata['nalu_abl_mesh']['mesh_dimensions']
+        plotbasemeshXY(x0, x1, meshdimensions)
+
+    # Plot the local mesh refinement
+    # ---------------------------------
+    if has_preprocess:
+        if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
+            # Plot the refinement boxes
+            refinecolors=['c','y','g','r']
+            for iturb, turb in enumerate(turbineXY):
+                for ibox, box in enumerate(refineboxes):
+                    boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
+                    plotRefineBox(boxXY, refinecolors[ibox])
 
 
-# Plot the mesh slices
-# ---------------------------------
-if len(slicemeshyaml)>0:
-    with open(slicemeshyaml) as stream:
-        try:
-            SMyamldata=yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-else:
-    SMyamldata = yamldata
+            # Plot the turbines
+            for iturb, turb in enumerate(turbineXY):
+                turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
+                plotXYpoints(turbpts)
 
-if 'slice_mesh' in SMyamldata:
-    print("Going through slices")
-    allslices=SMyamldata['slice_mesh']['slices']
-    for slice in allslices:
-        axis1        = np.array(slice['axis1'])
-        axis2        = np.array(slice['axis2'])
-        axis3        = np.array(slice['axis3'])
-        origin       = slice['origin']
-        grid_lengths = slice['grid_lengths']
-        num_planes   = slice['num_planes']
-        plane_offsets= slice['plane_offsets']
-        # normalize some quantities
-        axis1        = axis1/np.linalg.norm(axis1)
-        axis2        = axis2/np.linalg.norm(axis2)
-        axis3        = axis3/np.linalg.norm(axis3)
-        plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
-                         num_planes, plane_offsets)
-else:
-    print("No slice_mesh specification")
+            plotwinddirarrow(x0, x1, winddir)
+        else:
+            print("No local mesh refinement")
+    return
 
-# Load the realms YAML file (if necessary)
-# ---------------------------------    
-if len(almyamlfile)>0:
-    with open(almyamlfile) as stream:
+def plotMeshSlices(SMyamldata):
+    if 'slice_mesh' in SMyamldata:
+        print("Going through slices")
+        allslices=SMyamldata['slice_mesh']['slices']
+        for slice in allslices:
+            axis1        = np.array(slice['axis1'])
+            axis2        = np.array(slice['axis2'])
+            axis3        = np.array(slice['axis3'])
+            origin       = slice['origin']
+            grid_lengths = slice['grid_lengths']
+            num_planes   = slice['num_planes']
+            plane_offsets= slice['plane_offsets']
+            # normalize some quantities
+            axis1        = axis1/np.linalg.norm(axis1)
+            axis2        = axis2/np.linalg.norm(axis2)
+            axis3        = axis3/np.linalg.norm(axis3)
+            plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths, 
+                             num_planes, plane_offsets)
+    else:
+        print("No slice_mesh specification")
+    return
+
+def plotRealms(yamldata):
+    """
+    Plot everything in realms
+    """
+    # ---------------------------------
+    if 'realms' in yamldata:
+        # Plot the turbines
+        if 'actuator' in yamldata['realms'][0]:
+            nturbs = yamldata['realms'][0]['actuator']['n_turbines_glob']
+            # Loop through all of the turbines
+            for iturb in range(nturbs):
+                turbxy= yamldata['realms'][0]['actuator']['Turbine'+repr(iturb)]['turbine_hub_pos']
+                fastfile= yamldata['realms'][0]['actuator']['Turbine'+repr(iturb)]['fast_input_filename']
+                # get the fast information
+                EDFile=readFASTfile(fastfile, 'EDFile').strip('\"')
+                TipRad=float(readFASTfile(EDFile, 'TipRad'))
+                NacYaw=float(readFASTfile(EDFile, 'NacYaw'))
+                print(EDFile, TipRad, NacYaw)
+                turbpts=getTurbXYPoints(turbxy, 2*TipRad, 270-NacYaw)
+                plotXYpoints(turbpts)
+            
+        else:
+            print("No actuator line turbines to plot")
+
+        # Plot the data probes
+        if 'data_probes' in yamldata['realms'][0]:
+            specdata=yamldata['realms'][0]['data_probes']['specifications']
+            for spec in specdata:
+                # Plot the line-of-site vectors
+                if 'line_of_site_specifications' in spec:
+                    alllos=spec['line_of_site_specifications']
+                    for los in alllos:
+                        Npoints = los['number_of_points']
+                        tip     = los['tip_coordinates']
+                        tail    = los['tail_coordinates']
+                        plotLineOfSite(tip, tail, Npoints)
+                # Plot the line-of-site vectors
+                if 'plane_specifications' in spec:
+                    allplanes=spec['plane_specifications']
+                    for plane in allplanes:
+                        corner  = plane['corner_coordinates']
+                        edge1   = plane['edge1_vector']
+                        edge2   = plane['edge2_vector']
+                        edge1N  = plane['edge1_numPoints']
+                        edge2N  = plane['edge2_numPoints']
+                        if 'offset_vector' in plane:
+                            offset_vector   = plane['offset_vector']
+                        else:
+                            offset_vector=[]
+                        if 'offset_spacings' in plane:
+                            offset_spacings = plane['offset_spacings']
+                        else:
+                            offset_spacings=[]
+                        plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, 
+                                        offsetdir=offset_vector,
+                                        offsetspacings=offset_spacings)
+    else:
+        print("No realms to plot")
+    return
+
+def getyamlfromfile(yamlfile):
+    with open(yamlfile) as stream:
         try:
             yamldata=yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+    return yamldata
 
-# Plot everything in realms
-# ---------------------------------
-if 'realms' in yamldata:
+def getyamlfromstring(yamlstring):
+    try:
+        yamldata=yaml.safe_load(yamlstring)
+    except yaml.YAMLError as exc:
+        print(exc)
+    return yamldata
 
-    # Plot the turbines
-    if 'actuator' in yamldata['realms'][0]:
-        nturbs = yamldata['realms'][0]['actuator']['n_turbines_glob']
-        # Loop through all of the turbines
-        for iturb in range(nturbs):
-            turbxy= yamldata['realms'][0]['actuator']['Turbine'+repr(iturb)]['turbine_hub_pos']
-            fastfile= yamldata['realms'][0]['actuator']['Turbine'+repr(iturb)]['fast_input_filename']
-            # get the fast information
-            #print(turbxy, fastfile)
-            EDFile=readFASTfile(fastfile, 'EDFile').strip('\"')
-            TipRad=float(readFASTfile(EDFile, 'TipRad'))
-            NacYaw=float(readFASTfile(EDFile, 'NacYaw'))
-            print(EDFile, TipRad, NacYaw)
-            turbpts=getTurbXYPoints(turbxy, 2*TipRad, 270-NacYaw)
-            plotXYpoints(turbpts)
-            
-    else:
-        print("No actuator line turbines to plot")
 
-    # Plot the data probes
-    if 'data_probes' in yamldata['realms'][0]:
-        specdata=yamldata['realms'][0]['data_probes']['specifications']
-        for spec in specdata:
-            # Plot the line-of-site vectors
-            if 'line_of_site_specifications' in spec:
-                alllos=spec['line_of_site_specifications']
-                for los in alllos:
-                    Npoints = los['number_of_points']
-                    tip     = los['tip_coordinates']
-                    tail    = los['tail_coordinates']
-                    plotLineOfSite(tip, tail, Npoints)
-            # Plot the line-of-site vectors
-            if 'plane_specifications' in spec:
-                allplanes=spec['plane_specifications']
-                for plane in allplanes:
-                    corner  = plane['corner_coordinates']
-                    edge1   = plane['edge1_vector']
-                    edge2   = plane['edge2_vector']
-                    edge1N  = plane['edge1_numPoints']
-                    edge2N  = plane['edge2_numPoints']
-                    if 'offset_vector' in plane:
-                        offset_vector   = plane['offset_vector']
-                    else:
-                        offset_vector=[]
-                    if 'offset_spacings' in plane:
-                        offset_spacings = plane['offset_spacings']
-                    else:
-                        offset_spacings=[]
-                    plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, 
-                                    offsetdir=offset_vector,
-                                    offsetspacings=offset_spacings)
+def main():
+    # Handle arguments
+    parser = argparse.ArgumentParser(description='Plot mesh refinement and probe locations')
+    parser.add_argument('YAMLFILE',  nargs='+',   help="Parse this yaml file for mesh and refinement information")
+    parser.add_argument('--almyaml', default='',  help="Parse ALMYAML for the turbine and probe information")
+    parser.add_argument('--slicemeshyaml', default='',  help="Parse SLICEMESHYAML for the slice_mesh specifications")
+    args=parser.parse_args()
 
-else:
-    print("No realms to plot")
+    yamlfile=args.YAMLFILE[0]
+    almyamlfile=args.almyaml
+    slicemeshyaml=args.slicemeshyaml
+    
 
-plt.axis("square")
-plt.show()
+    # Initialize and plot the base mesh
+    # ---------------------------------
+    fig, ax = plt.subplots(1)
 
+    yamldata = getyamlfromfile(yamlfile)
+    turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes = getPreprocess(yamldata)
+    plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes)
+    
+    # Plot the mesh slices
+    # ---------------------------------
+    if len(slicemeshyaml)>0:  SMyamldata = getyamlfromfile(slicemeshyaml)
+    else:                     SMyamldata = yamldata
+
+    plotMeshSlices(SMyamldata)
+    
+    # Load the realms YAML file (if necessary)
+    # ---------------------------------    
+    if len(almyamlfile)>0: yamldata=getyamlfromfile(almyamldata)
+
+    plotRealms(yamldata)
+    plt.axis("square")
+    plt.show()
+    return
+
+if __name__ == "__main__":
+    main()
