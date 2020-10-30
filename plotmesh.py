@@ -114,9 +114,10 @@ def plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths,
     return
 
 # Plot the arrow to indicate wind direction
-def plotwinddirarrow(p0, p1, winddir):
+def plotwinddirarrow(p0, p1, winddir, center=[]):
     # get the mesh center
-    center=0.5*(np.array(p0)+np.array(p1))
+    if len(center)<2:
+        center=0.5*(np.array(p0)+np.array(p1))
     # get the dimensions of the sides
     length=0.5*((p1[0]-p0[0]) + (p1[1]-p0[1]))
     alength=0.1*length
@@ -201,7 +202,7 @@ def getPreprocess(yamldata):
             refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
     return turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes
 
-def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes):
+def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, windarrowcenter=[]):
     """
     Plot the base mesh and any mesh refinements
     """
@@ -238,7 +239,7 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes):
                 turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
                 plotXYpoints(turbpts)
 
-            plotwinddirarrow(x0, x1, winddir)
+            plotwinddirarrow(x0, x1, winddir, center=windarrowcenter)
         else:
             print("No local mesh refinement")
     return
