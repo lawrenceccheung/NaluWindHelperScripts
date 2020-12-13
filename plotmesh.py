@@ -8,6 +8,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches     import Rectangle
 import argparse
 
+meshcolors=['b','c','y','g','pink','r']
+
 # Rotates a point pt about origin orig
 # Here theta is measured w.r.t. the x-axis
 def rotatepoint(pt, orig, theta):
@@ -68,6 +70,15 @@ def plotRefineBox(plotXY, color):
 
     plt.fill(xpts,ypts, color)
     plt.plot(xpts,ypts, 'k', linewidth=0.25)
+
+def getRefineBoxDims(turbD, refineDim):
+    """
+    Get the dimensions of the refinement box
+    """
+    L1 = (refineDim[0] + refineDim[1])*turbD
+    L2 = (2.0*refineDim[2])*turbD
+    L3 = (2.0*refineDim[3])*turbD
+    return [L1, L2, L3]
 
 # Plot a series of XY points
 def plotXYpoints(XYpoints):
@@ -202,7 +213,8 @@ def getPreprocess(yamldata):
             refineboxes      = yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']
     return turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes
 
-def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, windarrowcenter=[]):
+def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, 
+               windarrowcenter=[], initlevel=1):
     """
     Plot the base mesh and any mesh refinements
     """
@@ -227,11 +239,12 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, windarrowcen
     if has_preprocess:
         if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
             # Plot the refinement boxes
-            refinecolors=['c','y','g','r']
+            #refinecolors=['c','y','g','r']
+            refinecolors=meshcolors
             for iturb, turb in enumerate(turbineXY):
                 for ibox, box in enumerate(refineboxes):
                     boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
-                    plotRefineBox(boxXY, refinecolors[ibox])
+                    plotRefineBox(boxXY, refinecolors[ibox+initlevel])
 
 
             # Plot the turbines
@@ -239,10 +252,79 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, windarrowcen
                 turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
                 plotXYpoints(turbpts)
 
-            plotwinddirarrow(x0, x1, winddir, center=windarrowcenter)
+            if windarrowcenter is not None:
+                plotwinddirarrow(x0, x1, winddir, center=windarrowcenter)
         else:
             print("No local mesh refinement")
     return
+
+def estimateMeshSize(yamldata, turbineXY, turbineD, winddir, refineboxes, 
+                     initsizes=[], startlevel=0, weights=[1,1]):
+    """
+    Estimate the mesh size of the refined mesh
+    """
+    if 'nalu_preprocess' in yamldata:
+        has_preprocess = True
+    else:
+        has_preprocess = False
+        raise Exception("No nalu_preprocess in input")
+
+    #sizelevels = []
+    sizelevels = initsizes
+
+    ## Load data from the yamlfile
+    if 'nalu_abl_mesh' in yamldata:
+        # -- mesh extents --
+        meshvertices     = yamldata['nalu_abl_mesh']['vertices']
+        x0               = meshvertices[0]
+        x1               = meshvertices[1]
+        # -- mesh dimensions --
+        meshdimensions   = yamldata['nalu_abl_mesh']['mesh_dimensions']
+        dx               = abs(x1[0]-x0[0])/(meshdimensions[0])
+        dy               = abs(x1[1]-x0[1])/(meshdimensions[1])
+        dz               = abs(x1[2]-x0[2])/(meshdimensions[2])
+        N0               = meshdimensions[0]*meshdimensions[1]*meshdimensions[2]
+        #sizelevels.append([N0, [dx, dy, dz]])
+        sizelevels = [ [N0, [dx, dy, dz]] ]
+    else:
+        if len(sizelevels)==0: raise Exception("No nalu_abl_mesh in input")
+
+    # Plot the local mesh refinement
+    # ---------------------------------
+    if has_preprocess:
+        if 'mesh_local_refinement' in yamldata['nalu_preprocess']:
+            # Plot the refinement boxes
+            #refinecolors=['c','y','g','r']
+            for iturb, turb in enumerate(turbineXY):
+                for ibox, box in enumerate(refineboxes):
+                    boxdim = getRefineBoxDims(turbineD[iturb], box)
+                    #lastlevel = sizelevels[-1]                        
+                    lastlevel = sizelevels[startlevel+ibox]
+                    Nlast     = lastlevel[0]
+                    dxlast    = lastlevel[1]
+                    # Get the cells to subtract out
+                    Nsub      = (int(boxdim[0]/dxlast[0])*int(boxdim[1]/dxlast[1])*int(boxdim[2]/dxlast[2]))
+                    # New cells to add
+                    dx1       = 0.5*dxlast[0]
+                    dx2       = 0.5*dxlast[1]
+                    dx3       = 0.5*dxlast[2]
+                    Nadd      = (int(boxdim[0]/dx1)*int(boxdim[1]/dx2)*int(boxdim[2]/dx3))
+                    #boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
+                    #plotRefineBox(boxXY, refinecolors[ibox])
+                    #print(len(sizelevels), startlevel+ibox)
+                    if len(sizelevels)<startlevel+ibox+2:
+                        Nnew  = Nlast - weights[0]*Nsub + int(weights[1]*Nadd)
+                        sizelevels.append([Nnew, [dx1, dx2, dx3]])
+                    else:
+                        Nlast = sizelevels[startlevel+ibox+1][0]
+                        Nnew  = Nlast - weights[0]*Nsub + int(weights[1]*Nadd)
+                        sizelevels[startlevel+ibox+1]=[Nnew, [dx1, dx2, dx3]]
+        else:
+            raise Exception("No local mesh refinement")
+    else:
+        raise Exception("No preprocess in input")
+
+    return sizelevels    
 
 def plotMeshSlices(SMyamldata):
     if 'slice_mesh' in SMyamldata:
