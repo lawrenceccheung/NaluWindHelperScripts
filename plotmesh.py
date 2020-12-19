@@ -153,7 +153,7 @@ def plotLineOfSite(tip, tail, npoints):
     plt.plot(x, y, '.', color='k')
     return
 
-def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetspacings=[]):
+def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetspacings=[], **kwargs):
     # construct the line of points
     dx=(np.array(edge1))/float(edge1N-1)
     dy=(np.array(edge2))/float(edge2N-1)
@@ -168,9 +168,16 @@ def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetsp
             z.append(pt[2])
     if ((len(offsetdir)>0) and (len(offsetspacings)>0)):
         for s in offsetspacings:
-            plt.plot(np.array(x)+s*offsetdir[0], np.array(y)+s*offsetdir[1], '.', color='k')
+            if not kwargs:
+                plt.plot(np.array(x)+s*offsetdir[0], np.array(y)+s*offsetdir[1], '.', color='k')
+            else:
+                plt.plot(np.array(x)+s*offsetdir[0], np.array(y)+s*offsetdir[1],
+                         **kwargs)
     else:
-        plt.plot(x, y, '.', color='k')
+        if not kwargs:
+            plt.plot(x, y, '.', color='k')
+        else:
+            plt.plot(x, y, **kwargs)
     return
 
 def readFASTfile(FASTfile, keyword):
@@ -348,7 +355,7 @@ def plotMeshSlices(SMyamldata):
         print("No slice_mesh specification")
     return
 
-def plotRealms(yamldata):
+def plotRealms(yamldata, **kwargs):
     """
     Plot everything in realms
     """
@@ -403,7 +410,7 @@ def plotRealms(yamldata):
                             offset_spacings=[]
                         plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, 
                                         offsetdir=offset_vector,
-                                        offsetspacings=offset_spacings)
+                                        offsetspacings=offset_spacings, **kwargs)
     else:
         print("No realms to plot")
     return
