@@ -151,7 +151,7 @@ def plotLineOfSite(tip, tail, npoints):
         y.append(pt[1])
         z.append(pt[2])
     plt.plot(x, y, '.', color='k')
-    return
+    return x, y, z
 
 def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetspacings=[], **kwargs):
     # construct the line of points
@@ -178,7 +178,7 @@ def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetsp
             plt.plot(x, y, '.', color='k')
         else:
             plt.plot(x, y, **kwargs)
-    return
+    return x, y, z
 
 def readFASTfile(FASTfile, keyword):
     # go through the file line-by-line
@@ -355,7 +355,7 @@ def plotMeshSlices(SMyamldata):
         print("No slice_mesh specification")
     return
 
-def plotRealms(yamldata, **kwargs):
+def plotRealms(yamldata, returnSamplePts=False, **kwargs):
     """
     Plot everything in realms
     """
@@ -382,6 +382,9 @@ def plotRealms(yamldata, **kwargs):
         # Plot the data probes
         if 'data_probes' in yamldata['realms'][0]:
             specdata=yamldata['realms'][0]['data_probes']['specifications']
+            allx=[]
+            ally=[]
+            allz=[]
             for spec in specdata:
                 # Plot the line-of-site vectors
                 if 'line_of_site_specifications' in spec:
@@ -390,7 +393,10 @@ def plotRealms(yamldata, **kwargs):
                         Npoints = los['number_of_points']
                         tip     = los['tip_coordinates']
                         tail    = los['tail_coordinates']
-                        plotLineOfSite(tip, tail, Npoints)
+                        x,y,z = plotLineOfSite(tip, tail, Npoints)
+                        allx += x
+                        ally += y
+                        allz += z
                 # Plot the line-of-site vectors
                 if 'plane_specifications' in spec:
                     allplanes=spec['plane_specifications']
@@ -408,11 +414,18 @@ def plotRealms(yamldata, **kwargs):
                             offset_spacings = plane['offset_spacings']
                         else:
                             offset_spacings=[]
-                        plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, 
-                                        offsetdir=offset_vector,
-                                        offsetspacings=offset_spacings, **kwargs)
+                        x,y,z=plotSamplePlane(corner, edge1, edge2, 
+                                              edge1N, edge2N, 
+                                              offsetdir=offset_vector,
+                                              offsetspacings=offset_spacings, 
+                                              **kwargs)
+                        allx += x
+                        ally += y
+                        allz += z
+
     else:
         print("No realms to plot")
+    if returnSamplePts: return allx, ally, allz
     return
 
 def getyamlfromfile(yamlfile):
