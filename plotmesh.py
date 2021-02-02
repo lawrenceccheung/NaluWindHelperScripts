@@ -59,14 +59,17 @@ def getRefineBoxXY(turbXY, turbD, refineDim, windDir):
     XYbox2= [rotatepoint(p, turbXY, theta) for p in XYbox ]
     return XYbox2
 
-def plotRefineBox(plotXY, color):
+def plotRefineBox(plotXY, color, scale={'x':0.0, 'y':0.0, 'L':1.0}):
+    xs = scale['x']
+    ys = scale['y']
+    L  = scale['L']
     xpts=[]
     ypts=[]
     for ip, p in enumerate(plotXY):
-        xpts.append(p[0])
-        ypts.append(p[1])
-    xpts.append(plotXY[0][0])
-    ypts.append(plotXY[0][1])
+        xpts.append((p[0]-xs)/L)
+        ypts.append((p[1]-ys)/L)
+    xpts.append((plotXY[0][0]-xs)/L)
+    ypts.append((plotXY[0][1]-ys)/L)
 
     plt.fill(xpts,ypts, color)
     plt.plot(xpts,ypts, 'k', linewidth=0.25)
@@ -81,16 +84,24 @@ def getRefineBoxDims(turbD, refineDim):
     return [L1, L2, L3]
 
 # Plot a series of XY points
-def plotXYpoints(XYpoints):
+def plotXYpoints(XYpoints, scale={'x':0.0, 'y':0.0, 'L':1.0}):
+    xs = scale['x']
+    ys = scale['y']
+    L  = scale['L']
     for vec in XYpoints:
-        p1=vec[0]
-        p2=vec[1]
-        plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'k')
+        p1=vec[0] 
+        p2=vec[1] 
+        plt.plot([(p1[0]-xs)/L, (p2[0]-xs)/L], 
+                 [(p1[1]-ys)/L, (p2[1]-ys)/L], 'k')
     return
 
 # Plot the base mesh
-def plotbasemeshXY(p0, p1, meshdimensions):
-    rect=Rectangle((p0[0], p0[1]), p1[0]-p0[0], p1[1]-p0[1])
+def plotbasemeshXY(p0, p1, meshdimensions, scale={'x':0.0, 'y':0.0, 'L':1.0}):
+    xs = scale['x']
+    ys = scale['y']
+    L  = scale['L']
+    rect=Rectangle(((p0[0]-xs)/L, (p0[1]-ys)/L), 
+                   (p1[0]-p0[0])/L, (p1[1]-p0[1])/L)
     currentAxis = plt.gca()
     currentAxis.add_patch(rect)
     return
@@ -125,18 +136,21 @@ def plotallslicemesh(axis1, axis2, axis3, origin, grid_lengths,
     return
 
 # Plot the arrow to indicate wind direction
-def plotwinddirarrow(p0, p1, winddir, center=[]):
+def plotwinddirarrow(p0, p1, winddir, center=[], scale={'x':0.0, 'y':0.0, 'L':1.0}, arrowlengthfactor=0.1):
+    xs = scale['x']
+    ys = scale['y']
+    L  = scale['L']
     # get the mesh center
     if len(center)<2:
         center=0.5*(np.array(p0)+np.array(p1))
     # get the dimensions of the sides
     length=0.5*((p1[0]-p0[0]) + (p1[1]-p0[1]))
-    alength=0.1*length
+    alength=arrowlengthfactor*length
     # Get the theta angle
     theta = (270.0-winddir)*math.pi/180.0
     dx = alength*math.cos(theta)
     dy = alength*math.sin(theta)
-    plt.arrow(center[0], center[1], dx, dy, width=0.05*alength)
+    plt.arrow((center[0]-xs)/L, (center[1]-ys)/L, dx, dy, width=0.05*alength)
     return
 
 def plotLineOfSite(tip, tail, npoints):
@@ -153,7 +167,8 @@ def plotLineOfSite(tip, tail, npoints):
     plt.plot(x, y, '.', color='k')
     return x, y, z
 
-def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], offsetspacings=[], **kwargs):
+def plotSamplePlane(corner, edge1, edge2, edge1N, edge2N, offsetdir=[], 
+                    offsetspacings=[], **kwargs):
     # construct the line of points
     dx=(np.array(edge1))/float(edge1N-1)
     dy=(np.array(edge2))/float(edge2N-1)
@@ -221,7 +236,8 @@ def getPreprocess(yamldata):
     return turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes
 
 def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, 
-               windarrowcenter=[], initlevel=1):
+               windarrowcenter=[], initlevel=1, 
+               scale={'x':0.0, 'y':0.0, 'L':1.0}):
     """
     Plot the base mesh and any mesh refinements
     """
@@ -239,7 +255,7 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes,
         
         # -- mesh dimensions --
         meshdimensions   = yamldata['nalu_abl_mesh']['mesh_dimensions']
-        plotbasemeshXY(x0, x1, meshdimensions)
+        plotbasemeshXY(x0, x1, meshdimensions, scale=scale)
 
     # Plot the local mesh refinement
     # ---------------------------------
@@ -251,16 +267,16 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes,
             for iturb, turb in enumerate(turbineXY):
                 for ibox, box in enumerate(refineboxes):
                     boxXY = getRefineBoxXY(turb, turbineD[iturb], box, winddir)
-                    plotRefineBox(boxXY, refinecolors[ibox+initlevel])
+                    plotRefineBox(boxXY, refinecolors[ibox+initlevel], scale=scale)
 
 
             # Plot the turbines
             for iturb, turb in enumerate(turbineXY):
                 turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
-                plotXYpoints(turbpts)
+                plotXYpoints(turbpts, scale=scale)
 
             if windarrowcenter is not None:
-                plotwinddirarrow(x0, x1, winddir, center=windarrowcenter)
+                plotwinddirarrow(x0, x1, winddir, center=windarrowcenter, scale=scale, arrowlengthfactor=0.1/scale['L'])
         else:
             print("No local mesh refinement")
     return

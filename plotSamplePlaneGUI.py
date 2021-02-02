@@ -93,7 +93,8 @@ def _quit():
 
 
 # Load all of the information needed from the file
-def loadplanefile(filename, checkcomma=True):
+# --- need to fix checkcomma!!! --- 
+def loadplanefile(filename, checkcomma=False, coordfile=''):
     hascomma=False
     if checkcomma:
         with open(filename) as f:
@@ -105,34 +106,66 @@ def loadplanefile(filename, checkcomma=True):
             temp=infile.read().replace(",","")
         infile.close()
         dat2=[map(float, y.split()) for y in temp.split("\n")[2:]]
-        dat=array(filter(None, dat2))
+        mdat=array(filter(None, dat2))
     else:
-        dat=loadtxt(filename, skiprows=2)
+        mdat=loadtxt(filename, skiprows=2)
+    # Load coordinate data file
+    if len(coordfile)>0:
+        cdat=loadtxt(coordfile, skiprows=2)
+        dat = hstack((cdat, mdat))
+    else:
+        dat = mdat
     # Get the maximum indices
     numplanes = int(max(dat[:,0]))
     Numj      = int(max(dat[:,1]))
     Numi      = int(max(dat[:,2]))
     #print numplanes, Numi, Numj
     fname, fext = os.path.splitext(filename)
+    headers=[]
+    # Load the headers from the coordfile
+    if len(coordfile)>0:
+        if ((fext == '.gz') or (fext == '.GZ')):
+            with gzip.open(coordfile) as fp:
+                junk = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().strip().split()[1:])
+        else:
+            with open(coordfile) as fp:
+                junk = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().strip().split()[1:])        
+    # Else just use the one file headers
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers    = fp.readline().strip().split()[1:]
+            headers.extend(fp.readline().strip().split()[1:])
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers    = fp.readline().strip().split()[1:]
+            headers.extend(fp.readline().strip().split()[1:])
     time=float(timestring.replace(",",""))
     #print time, headers
     fp.close()
     return dat, time, headers
+
+def evalexpr(expr, data, varnames):
+    answer=expr
+    for ivar, var in enumerate(varnames):
+        answer=answer.replace(var, repr(data[ivar]))
+    return eval(answer)
     
-def getplotplane(dat, planenum, col):
+def getplotplane(dat, planenum, col, expr='',headers=[]):
     Numj      = int(max(dat[:,1]))+1
     Numi      = int(max(dat[:,2]))+1
 
     planedat=dat[dat[:,0]==planenum,:]
     plotplane=planedat[:,[1,2,col]]
+
+    if len(expr)>0:
+        if len(headers)==0: 
+            print('need headers in getplotplane')
+            sys.exit(1)
+        for irow in range(len(plotplane)):
+            planerow = planedat[irow, :]
+            plotplane[irow, 2] = evalexpr(expr, planerow, headers)
 
     # Get the corner point
     cornerrow =planedat[(planedat[:,1]==0)&(planedat[:,2]==0),:][0][3:6]
@@ -150,24 +183,34 @@ def getplotplane(dat, planenum, col):
 
 # Plots all of the data
 def _plotdata():
-    global fig, canvas, plotvar, planen, toolbar, plotfile
+    global fig, canvas, plotvar, planen, toolbar, plotfile, colormap, icoordfile
+    global expr
+    nlevels=20
     fig.clf()
     ax=fig.add_subplot(111)
     ax.clear()
     # Load the file to plot
     filename=filelist[plotfile.state()]
-    dat, time, headers=loadplanefile(filename)
+    dat, time, headers=loadplanefile(filename, coordfile=icoordfile)
     
     # Select the options to plot
     plotcol=plotvar.state()
+    if plotcol==len(headers):
+        plotcol=0
+        plotexpr=expr
+        plottitle=expr
+    else:
+        plotexpr=''
+        plottitle=headers[plotcol]
     planenum=planen.state()
-    X,Y,Z=getplotplane(dat, planenum, plotcol)
-    im=ax.contourf(X, Y, Z)
+    X,Y,Z=getplotplane(dat, planenum, plotcol, expr=plotexpr, headers=headers)
+    im=ax.contourf(X, Y, Z, nlevels, cmap=colormap)
     im.autoscale()
     cb=fig.colorbar(im, ax=ax)
     ax.axis('equal')
-    ax.set(ylim=(min(Y[:,0]), max(Y[:,0])))
-    ax.set_title('Time = %.3f %s'%(time, headers[plotcol]))
+    #ax.set(ylim=(min(Y[:,0]), max(Y[:,0])))
+    ax.set(xlim=(min(X[0,:]), max(X[0,:])))
+    ax.set_title('Time = %.3f %s'%(time, plottitle))
     canvas.draw()
     toolbar.update()
     fig.tight_layout()
@@ -176,6 +219,7 @@ def _plotdata():
 # Run all of the gui elements
 def doGUI():
     global fig, canvas, plotvar, planen, toolbar, plotfile, center
+    global expr
     # GUI stuff
     top  = Tk.Tk()
     #top.geometry("800x400")
@@ -205,7 +249,9 @@ def doGUI():
     
     allvars_pane = ScrollableFrame(leftframe, bg='#444444')
     allvars_pane.pack(expand="true", fill="both")
-    plotvar = RadioBbar(allvars_pane.interior, headers[3:], "Plot variables", 3)
+    plotoptions=headers[3:]
+    if len(expr)>0: plotoptions.append(expr)
+    plotvar = RadioBbar(allvars_pane.interior, plotoptions, "Plot variables", 3)
     plotvar.v.set(plotcol)
     plotvar.pack(side=Tk.TOP)
 
@@ -225,8 +271,8 @@ def doGUI():
     Tk.mainloop()
 
 def main():
-    global filelist, planenum, plotcol
-    global dat, time, headers
+    global filelist, planenum, plotcol, colormap, icoordfile
+    global dat, time, headers, expr
 
     # Handle arguments
     parser = argparse.ArgumentParser(description='Plot sample mesh')
@@ -236,6 +282,17 @@ def main():
     parser.set_defaults(nogui=False)
     parser.add_argument('--planenum', default=0,   help="Plot this plane number")
     parser.add_argument('--varnum',   default=6,   help="Plot this variable number")
+    parser.add_argument('--expr',     default='',  help="Plot this expression")
+    parser.add_argument('--cmap',     default='coolwarm',  help="Specify colormap to use")
+    parser.add_argument('--figsetup', default='',  help="execute FIGSETUP string before plotting")
+    parser.add_argument('--vmax',     default=None,help="Specify maximum color range")
+    parser.add_argument('--vmin',     default=None,help="Specify minimum color range")
+    parser.add_argument('--coordfile',default='',  help="Specify coordinate file")
+    parser.add_argument('--savefile', default='',  help="Save plot to this file")
+    parser.add_argument('--batchmode',action='store_true', 
+                        help="Use batch mode [default=False]")
+    parser.set_defaults(batchmode=False)
+    
     args=parser.parse_args()
 
     # Get the default and user arguments
@@ -243,6 +300,14 @@ def main():
     nogui     = args.nogui
     planenum  = int(args.planenum)
     plotcol   = int(args.varnum)
+    expr      = args.expr
+    colormap  = args.cmap
+    figsetup  = args.figsetup
+    vmax      = args.vmax
+    vmin      = args.vmin
+    icoordfile= args.coordfile
+    savefile  = args.savefile
+    batchmode = args.batchmode
 
     # Need at least one input
     if (len(filelist)<1):
@@ -253,19 +318,29 @@ def main():
 
     # Choose gui option or not
     if nogui:
-        if (len(filelist)>1):
+        if (len(filelist)>=1):
             planefile = filelist[0]
         else:
             sys.exit('One PLANEFILE required in command line mode')
-        dat, time, headers=loadplanefile(planefile)
-        X,Y,Z=getplotplane(dat, planenum, plotcol)
-        plt.contourf(X, Y, Z)
+        dat, time, headers=loadplanefile(planefile, coordfile=icoordfile, checkcomma=False)
+        if len(figsetup)>0: exec(figsetup)
+        X,Y,Z=getplotplane(dat, planenum, plotcol, expr=expr, headers=headers)
+        nlevels=21
+        cmax = amax(Z) if vmax is None else float(vmax)
+        cmin = amin(Z) if vmin is None else float(vmin)
+        clevels=linspace(cmin, cmax,nlevels)
+        plt.contourf(X, Y, Z, clevels, cmap=colormap)
         plt.colorbar()
         plt.axis('equal')
-        plt.title('Time = %.3f %s'%(time, headers[plotcol]))
-        plt.show()
+        if len(expr)>0:
+            plt.title('Time = %.3f %s'%(time, expr))
+        else:
+            plt.title('Time = %.3f %s'%(time, headers[plotcol]))
+        if len(savefile)>0: plt.savefig(savefile)
+        if not batchmode:   plt.show()
     else:
-        dat, time, headers=loadplanefile(filelist[0])
+        dat, time, headers=loadplanefile(filelist[0], coordfile=icoordfile)
+        print(headers)
         doGUI()
 
 if __name__ == "__main__":
