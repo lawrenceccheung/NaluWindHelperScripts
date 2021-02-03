@@ -149,7 +149,7 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
 def evalexpr(expr, data, varnames):
     answer=expr
     for ivar, var in enumerate(varnames):
-        answer=answer.replace(var, repr(data[ivar]))
+        answer=answer.replace(var, '('+repr(data[ivar])+')')
     return eval(answer)
     
 def getplotplane(dat, planenum, col, expr='',headers=[]):
