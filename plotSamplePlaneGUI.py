@@ -141,7 +141,7 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
             headers.extend(fp.readline().strip().split()[1:])
-    time=float(timestring.replace(",",""))
+    time=float(timestring.decode('utf-8').replace(",",""))
     #print time, headers
     fp.close()
     return dat, time, headers
@@ -149,7 +149,7 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
 def evalexpr(expr, data, varnames):
     answer=expr
     for ivar, var in enumerate(varnames):
-        answer=answer.replace(var, '('+repr(data[ivar])+')')
+        answer=answer.replace(var.decode('utf-8'), '('+repr(data[ivar])+')')
     return eval(answer)
     
 def getplotplane(dat, planenum, col, expr='',headers=[]):
