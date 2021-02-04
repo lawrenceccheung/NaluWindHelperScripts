@@ -34,6 +34,7 @@ parser.add_argument('--dobackup', action="store_true", help="Backup files [defau
 parser.add_argument('--addNsteps', default=100, help="Add another ADDNSTEPS to the run [default 100]")
 parser.add_argument('--runToNsteps', default=-1, help="Run until RUNTONSTEPS are reached [default is ADDNSTEPS, not RUNTONSTEPS]")
 parser.add_argument('--suffix', default='',  help="Suffix to attach to backup files [default is date/time based suffix]")
+parser.add_argument('--output', default='',  help="Write the new yaml file to OUTPUT")
 args=parser.parse_args()
 
 
@@ -42,6 +43,7 @@ infile    = args.yamlfile[0]
 doBackup  = args.dobackup
 addNsteps = int(args.addNsteps)
 runToNsteps = int(args.runToNsteps)
+outputfile= args.output
 #print(doBackup)
 #print(runNsteps)
 #sys.exit(1)
@@ -79,6 +81,11 @@ if doFASTALM:
     print("# Number of turbines:        %i"%Nturbines)
     print("# Restart filename:          %s"%restartname)
     print("# dt_fast:                   %s"%dt_fast)
+
+    # Get the delta between FAST start and Nalu Start
+    tstart_fast  = data['realms'][0]['actuator']['t_start']
+    delta_tstart_fast = data['Time_Integrators'][0]['StandardTimeIntegrator']['start_time'] - tstart_fast
+    print("# delta_tstart_fast = %f"%delta_tstart_fast)
 
     # Get all of the fast files
     fastfiles=[]
@@ -182,11 +189,43 @@ data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count'] 
 # Change the restart_time
 data['realms'][0]['restart']['restart_time'] = restarttime
 
+# Get a list of initialization realms
+initializationrealms=[]
+deleterealms=[]
+for irealm, realm in enumerate(data['realms']):
+    if 'type' in realm:
+        if realm['type']=='initialization':
+            print("# REMOVING %s from realms"%realm['name'])
+            initializationrealms.append(realm['name'])
+            deleterealms.append(irealm)
+#print(initializationrealms, deleterealms)
+for realm in deleterealms:
+    data['realms'].pop(realm)
+
+# Check transfers for badrealms and delete them
+deletetransfers=[]
+if 'transfers' in data:
+    for ixfer, xfer in enumerate(data['transfers']):
+        check = any(realm in xfer['realm_pair'] for realm in initializationrealms)
+        if check: 
+            #print(repr(xfer['name'])+' has realm in '+repr(initializationrealms))
+            print("# REMOVING %s from transfers section"%xfer['name'])
+            deletetransfers.append(ixfer)
+for xfer in deletetransfers:
+    data['transfers'].pop(xfer)
+            
+# Check the time integration realms
+timeint_realms = data['Time_Integrators'][0]['StandardTimeIntegrator']['realms']
+for realm in initializationrealms: 
+    print("# REMOVING %s from StandardTimeIntegrator realms"%realm)
+    timeint_realms.remove(realm)
+data['Time_Integrators'][0]['StandardTimeIntegrator']['realms'] = timeint_realms
+
 # Change turbine simStart
 if doFASTALM:
     data['realms'][0]['actuator']['simStart'] = "restartDriverInitFAST"
-    data['realms'][0]['actuator']['t_start']  = restarttime 
-    data['realms'][0]['actuator']['t_max']    = restarttime +naludt*maxstep+1000
+    data['realms'][0]['actuator']['t_start']  = restarttime - delta_tstart_fast
+    data['realms'][0]['actuator']['t_max']    = restarttime + naludt*maxstep+100000
     for i in range(0,Nturbines):
         # Get the latest checkpoint file
         fastfile = data['realms'][0]['actuator']['Turbine%i'%i]['fast_input_filename']
@@ -200,7 +239,16 @@ if doFASTALM:
 print("")
 print("# ------------------------------ #")
 # Write it out
+if len(outputfile)>0:
+    fout = open(outputfile,'w')
+    print("# Writing new restart file to "+outputfile)
+else:
+    fout = sys.stdout
+
 if useruemel: 
-    yaml.dump(data, sys.stdout)
+    yaml.dump(data, fout)
 else: 
-    yaml.dump(data, sys.stdout, default_flow_style=False)
+    yaml.dump(data, fout, default_flow_style=False)
+
+if len(outputfile)>0: 
+    fout.close()
