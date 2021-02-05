@@ -146,7 +146,10 @@ if len(sys.argv)<2:
     print(" "+sys.argv[0]+" FASTFILE1 [FASTFILE2 ... ]")
     sys.exit(1)
 
-colorcycle=cycle(plt.rcParams['axes.color_cycle'])
+try:
+    colorcycle=cycle(plt.rcParams['axes.color_cycle'])
+except:
+    colorcycle=cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 # Load the data
 alldat, headers, units, names=loadalldata(sys.argv[1:])
