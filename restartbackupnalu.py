@@ -63,7 +63,8 @@ maxstep     = data['Time_Integrators'][0]['StandardTimeIntegrator']['termination
 
 # Get the last restart time
 lastrestartfile=os.popen('ls -1rt %s.* |tail -n1'%restartname).read().strip()
-cmd="ncdump -v time_whole %s  | sed -ne '/time_whole =/,$ p' | sed -e 's/}//g'  -e 's/\;//g' |tr -d '\\n' | awk '{print $NF}'"
+#cmd="ncdump -v time_whole %s  | sed -ne '/time_whole =/,$ p' | sed -e 's/}//g'  -e 's/\;//g' |tr -d '\\n' | awk '{print $NF}'"
+cmd="ncdump -v time_whole %s  | sed -ne '/time_whole =/,$ p' | sed -e 's/}//g'  -e 's/\;//g' -e 's/time_whole =//g' -e 's/,//g' -e 's/ /\\n/g' |sort -n |tail -n1"
 restarttime=float(os.popen(cmd%lastrestartfile).read().strip())
 print("# Last written restart file: %s"%lastrestartfile)
 print("# Last restart time:         %f"%restarttime)
