@@ -635,6 +635,70 @@ def plotTIstreamwiseprofile(data, figax, tlims=[], **kwargs):
     if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
+def plotTIhorizontalprofile(data, figax, tlims=[], **kwargs):
+    if len(tlims)>0:
+        t1 = tlims[0]
+        t2 = tlims[1]
+    else:
+        t1 = float(t1entry.get())
+        t2 = float(t2entry.get())
+    time  = data.time
+    z     = data.heights
+    uavg  = data.time_average(field='velocity', index=0, times=[t1, t2])
+    vavg  = data.time_average(field='velocity', index=1, times=[t1, t2])
+    u_mag = np.sqrt(uavg**2 + vavg**2)
+    nx    = uavg/u_mag
+    ny    = vavg/u_mag
+
+    filt   = ((time[:] >= t1) & (time[:] <= t2))
+    # Filtered time
+    t = time[filt]
+    # The total time
+    dt = np.amax(t) - np.amin(t)
+
+    # selected velocities
+    ufilt  = data.u[filt,:]
+    vfilt  = data.v[filt,:]
+
+    ulong       = uavg*nx + vavg*ny
+
+    # TKE/TI
+    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
+    uv = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
+    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
+    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    tke = 0.5*(uu+vv+ww)
+    TI = sqrt(2.0/3.0*tke)/u_mag
+
+    uprime = sqrt(uu)
+    vprime = sqrt(vv)
+    # === method 1 ====
+    sigmahoriz = np.sqrt(uu+vv)
+    TIhoriz    = sigmahoriz/u_mag 
+    # === method 2 ====
+    ulongprime = sqrt(uu*nx*nx + vv*ny*ny + 2*uv*nx*ny)
+    ulatprime  = sqrt(uu*ny*ny + vv*nx*nx - 2*uv*nx*ny)
+    TIhoriz2    = np.sqrt(ulongprime**2 + ulatprime**2)/u_mag
+
+    # TI streamwise
+    TIstream = ulongprime/ulong
+
+    if 'exportdata' in kwargs: 
+        return np.vstack((z, TIhoriz)).transpose(), "z, TI"
+    figax.plot(TI, z, '-', label='TI (TKE)')
+    figax.plot(TIstream, z, '-o', label='TI (streamwise)')
+    figax.plot(TIhoriz,  z, '-.', label='TI (horizontal)')
+
+    figax.legend(loc='best')
+    figax.set_xlabel("TI [-]")
+    figax.set_ylabel('z [m]')
+    if 'focusz' in kwargs: figax.set_ylim(kwargs['focusz'])
+    if 'hubheight' in kwargs: figax.hlines(kwargs['hubheight'], min(TI), max(TI), linestyles='dashed', linewidth=0.5)
+    if 'plotdict' in kwargs: plotdict = eval(kwargs['plotdict'])
+    else:                    plotdict = eval(paramentry.get())
+    if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
+    return
+
 def reportABLstats(data, heights=[], tlims=[]):
     outdata=[]
     if len(tlims)>0:
@@ -720,6 +784,7 @@ allplotfunctions=[["Velocity time trace", plotvelocityhistory, "Vtrace"],
                   ["SFS Profile",         plotSFSprofile,      "SFSstressprof"],
                   ["TI Profile",          plotTIprofile,       "TIprof"],
                   ["TI Streamwise",       plotTIstreamwiseprofile, "TIstream"],
+                  ["TI horizontal",       plotTIhorizontalprofile, "TIhoriz"],
                   ["Utau history",        plotutauhistory,     "Utauprof"],
                   ["Shear exp. Profile",  plotShearAlpha,      "Alphaprof"],
                   ["Temp time trace",     plottemperaturehistory, "Ttrace"],]
