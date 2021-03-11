@@ -31,6 +31,7 @@ runNsteps=1000
 parser = argparse.ArgumentParser(description='Create a restart YAML file for Nalu.')
 parser.add_argument('yamlfile', nargs='+')
 parser.add_argument('--dobackup', action="store_true", help="Backup files [default=False]")
+parser.add_argument('--addTime',   default=0.0, help="Add ADDTIME seconds to the run [default 0.0]")
 parser.add_argument('--addNsteps', default=100, help="Add another ADDNSTEPS to the run [default 100]")
 parser.add_argument('--runToNsteps', default=-1, help="Run until RUNTONSTEPS are reached [default is ADDNSTEPS, not RUNTONSTEPS]")
 parser.add_argument('--suffix', default='',  help="Suffix to attach to backup files [default is date/time based suffix]")
@@ -41,6 +42,7 @@ args=parser.parse_args()
 # Load the yaml filename
 infile    = args.yamlfile[0]
 doBackup  = args.dobackup
+addTime   = float(args.addTime)
 addNsteps = int(args.addNsteps)
 runToNsteps = int(args.runToNsteps)
 outputfile= args.output
@@ -59,7 +61,18 @@ with open(infile) as fp:
 # Get some basic restart stuff
 restartname = data['realms'][0]['restart']['restart_data_base_name']
 naludt      = data['Time_Integrators'][0]['StandardTimeIntegrator']['time_step']
-maxstep     = data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count']
+maxstep     = None
+maxtime     = None
+if 'termination_step_count' in data['Time_Integrators'][0]['StandardTimeIntegrator']:
+    maxstep     = data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count']
+if 'termination_time' in data['Time_Integrators'][0]['StandardTimeIntegrator']:
+    maxtime     = data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_time']
+if (maxstep is None) and (maxtime is None):
+    print("Both termination_step_count and termination_time are missing from input file! EXITING... ")
+    sys.exit(1)
+if (maxstep is not None) and (maxtime is not None):
+    print("Both termination_step_count and termination_time are specified in input file! EXITING... ")
+    sys.exit(1)
 
 # Get the last restart time
 lastrestartfile=os.popen('ls -1rt %s.* |tail -n1'%restartname).read().strip()
@@ -183,9 +196,13 @@ print("# CHANGING Time_Integrators:StandardTimeIntegrator:start_time = %f"%resta
 data['Time_Integrators'][0]['StandardTimeIntegrator']['start_time'] = restarttime
 
 # Change the termination_step_count
-if (runToNsteps>0): finalstep = runToNsteps
-else:               finalstep = maxstep + addNsteps
-data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count'] = finalstep
+if maxstep is not None:
+    if (runToNsteps>0): finalstep = runToNsteps
+    else:               finalstep = maxstep + addNsteps
+    data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_step_count'] = finalstep
+else:
+    finaltime = maxtime + addTime
+    data['Time_Integrators'][0]['StandardTimeIntegrator']['termination_time'] = finaltime
 
 # Change the restart_time
 data['realms'][0]['restart']['restart_time'] = restarttime
@@ -224,9 +241,12 @@ data['Time_Integrators'][0]['StandardTimeIntegrator']['realms'] = timeint_realms
 
 # Change turbine simStart
 if doFASTALM:
+    extratime = None
+    if maxstep is not None: extratime = naludt*maxstep + 100000
+    if maxtime is not None: extratime = finaltime      + 100000.0
     data['realms'][0]['actuator']['simStart'] = "restartDriverInitFAST"
     data['realms'][0]['actuator']['t_start']  = restarttime - delta_tstart_fast
-    data['realms'][0]['actuator']['t_max']    = restarttime + naludt*maxstep+100000
+    data['realms'][0]['actuator']['t_max']    = restarttime + extratime
     for i in range(0,Nturbines):
         # Get the latest checkpoint file
         fastfile = data['realms'][0]['actuator']['Turbine%i'%i]['fast_input_filename']
