@@ -87,6 +87,21 @@ if 'actuator' in data['realms'][0]:
 else:
     doFASTALM = False
 
+# -- check a few things in the input file --
+# Get the listed start_time 
+start_time = data['Time_Integrators'][0]['StandardTimeIntegrator']['start_time']
+restoration_time = start_time
+# Get any initialization realms and check the start time
+for irealm, realm in enumerate(data['realms']):
+    if 'type' in realm:
+        if realm['type']=='initialization':
+            restoration_time=realm['solution_options']['input_variables_from_file_restoration_time']
+# check restoration time
+if abs(restoration_time - start_time)>1.0E-4:
+    print("#!! WARNING: DIFFERENCE IN start_time VS input_variables_from_file_restoration_time")
+    print("#!! WARNING: %f VS %f"%(start_time, restoration_time))
+    print("#!! WARNING: Using %f as the start_time in input file"%restoration_time)
+    start_time = restoration_time
 
 if doFASTALM:
     # Turbine stuff
@@ -98,7 +113,7 @@ if doFASTALM:
 
     # Get the delta between FAST start and Nalu Start
     tstart_fast  = data['realms'][0]['actuator']['t_start']
-    delta_tstart_fast = data['Time_Integrators'][0]['StandardTimeIntegrator']['start_time'] - tstart_fast
+    delta_tstart_fast = start_time - tstart_fast
     print("# delta_tstart_fast = %f"%delta_tstart_fast)
 
     # Get all of the fast files
