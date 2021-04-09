@@ -35,6 +35,8 @@ parser.add_argument('--addTime',   default=0.0, help="Add ADDTIME seconds to the
 parser.add_argument('--addNsteps', default=100, help="Add another ADDNSTEPS to the run [default 100]")
 parser.add_argument('--runToNsteps', default=-1, help="Run until RUNTONSTEPS are reached [default is ADDNSTEPS, not RUNTONSTEPS]")
 parser.add_argument('--suffix', default='',  help="Suffix to attach to backup files [default is date/time based suffix]")
+parser.add_argument('--changerestartname',   default='',  help="Change the name of the restart_data_base_name [default is no change]")
+parser.add_argument('--changeoutputname',    default='',  help="Change the name of the output_data_base_name [default is no change]")
 parser.add_argument('--output', default='',  help="Write the new yaml file to OUTPUT")
 args=parser.parse_args()
 
@@ -221,6 +223,20 @@ else:
 
 # Change the restart_time
 data['realms'][0]['restart']['restart_time'] = restarttime
+# Change the restart name
+if len(args.changerestartname)>0:
+    print("# CHANGING restartname: %s to %s"%(
+        data['realms'][0]['restart']['restart_data_base_name'],
+        args.changerestartname))
+    data['realms'][0]['restart']['restart_data_base_name'] = args.changerestartname
+
+# Change the output name
+if len(args.changeoutputname)>0:
+    print("# CHANGING outputname: %s to %s"%(
+        data['realms'][0]['output']['output_data_base_name'],
+        args.changeoutputname))
+    data['realms'][0]['output']['output_data_base_name'] = args.changeoutputname
+
 
 # Get a list of initialization realms
 initializationrealms=[]
