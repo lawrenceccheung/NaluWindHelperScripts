@@ -604,18 +604,24 @@ def plotTIstreamwiseprofile(data, figax, tlims=[], **kwargs):
     #TIstream    = sqrt(uprime2tavg)/ulong
 
     # TKE/TI
-    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
-    uv = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
-    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
-    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    uu_r = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
+    uv_r = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
+    vv_r = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
+    ww_r = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+
+    uu_s = data.time_average(field='sfs_stress', index=0, times=[t1, t2])
+    uv_s = data.time_average(field='sfs_stress', index=1, times=[t1, t2])
+    vv_s = data.time_average(field='sfs_stress', index=3, times=[t1, t2])
+    ww_s = data.time_average(field='sfs_stress', index=5, times=[t1, t2])
+
+    uu = uu_r + uu_s
+    uv = uv_r + uv_s
+    vv = vv_r + vv_s
+    ww = ww_r + ww_s
+
     tke = 0.5*(uu+vv+ww)
     TI = sqrt(2.0/3.0*tke)/u_mag
 
-    uprime = sqrt(uu)
-    vprime = sqrt(vv)
-    # === method 1 ====
-    ulongprime = uprime*nx + vprime*ny
-    TIstream = ulongprime/ulong
     # === method 2 ====
     ulongprime = sqrt(uu*nx*nx + vv*ny*ny + 2*uv*nx*ny)
     TIstream = ulongprime/ulong
@@ -718,7 +724,7 @@ def reportABLstats(data, heights=[], tlims=[], TItype='resolved'):
     vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
     ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
     tke_res = 0.5*(uu+vv+ww)
-    fieldstr='sfs_stress_tavg'
+    fieldstr='sfs_stress' #'sfs_stress_tavg'
     uu_sfs = data.time_average(field=fieldstr, index=0, times=[t1, t2])
     vv_sfs = data.time_average(field=fieldstr, index=3, times=[t1, t2])
     ww_sfs = data.time_average(field=fieldstr, index=5, times=[t1, t2])
