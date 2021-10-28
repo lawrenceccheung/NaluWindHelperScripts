@@ -63,6 +63,55 @@ def avgPlanes(filelist, coordfile='', getheaders=False, skiprows=2, progressbar=
     # return everything
     return returndat, headers
 
+def avgPlanesUU(filelist, avgdat, coordfile='', 
+                getheaders=False, skiprows=2, progressbar=True):
+    """
+    Average sample planes
+    """
+    Nfiles=len(filelist)
+    for ip, planefile in enumerate(filelist):
+        if progressbar: progress(ip+1, Nfiles, suffix='[%i/%i]'%(ip+1,Nfiles))
+        u = np.loadtxt(planefile, skiprows=skiprows)
+        Ncols = u.shape[1]
+        up = u - avgdat[:,-Ncols:]
+        if ip==0:
+            alldat =  up*up
+        else:
+            alldat += up*up
+    if progressbar: print("")
+    avgdat=alldat/Nfiles
+    # Add the coordinates if necessary
+    if len(coordfile)>0:
+        cdat=np.loadtxt(coordfile, skiprows=skiprows)
+        returndat = np.hstack((cdat, avgdat))
+    else:
+        returndat = avgdat
+    # Get the headers if necessary
+    headers=[]
+    if getheaders:
+        fname, fext = os.path.splitext(filelist[0])
+        # Load the headers from the coordfile
+        if len(coordfile)>0:
+            if ((fext == '.gz') or (fext == '.GZ')):
+                with gzip.open(coordfile) as fp:
+                    junk = fp.readline().strip().split()[1]
+                    headers.extend(fp.readline().strip().split()[1:])
+            else:
+                with open(coordfile) as fp:
+                    junk = fp.readline().strip().split()[1]
+                    headers.extend(fp.readline().strip().split()[1:])        
+        # Else just use the one file headers
+        if ((fext == '.gz') or (fext == '.GZ')):
+            with gzip.open(filelist[0]) as fp:
+                timestring = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().strip().split()[1:])
+        else:
+            with open(filename) as fp:
+                timestring = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().strip().split()[1:])
+    # return everything
+    return returndat, headers
+
 def saveavg(avgdat, headers, savefile, headerinfo=''):
     # construct the headers
     colheaders=' '.join(headers)
