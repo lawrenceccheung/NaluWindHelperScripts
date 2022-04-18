@@ -236,7 +236,7 @@ def getPreprocess(yamldata):
     return turbineXY, turbineD, turbineHH, orienttype, winddir, refineboxes
 
 def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes, 
-               windarrowcenter=[], initlevel=1, 
+               windarrowcenter=[], initlevel=1, plotturbs=True,
                scale={'x':0.0, 'y':0.0, 'L':1.0}):
     """
     Plot the base mesh and any mesh refinements
@@ -271,9 +271,10 @@ def plotmeshes(yamldata, turbineXY, turbineD, winddir, refineboxes,
 
 
             # Plot the turbines
-            for iturb, turb in enumerate(turbineXY):
-                turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
-                plotXYpoints(turbpts, scale=scale)
+            if plotturbs:
+                for iturb, turb in enumerate(turbineXY):
+                    turbpts=getTurbXYPoints(turb, turbineD[iturb], winddir)
+                    plotXYpoints(turbpts, scale=scale)
 
             if windarrowcenter is not None:
                 plotwinddirarrow(x0, x1, winddir, center=windarrowcenter, scale=scale, arrowlengthfactor=0.1/scale['L'])
