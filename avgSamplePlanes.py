@@ -50,16 +50,16 @@ def avgPlanes(filelist, coordfile='', getheaders=False, skiprows=2, progressbar=
             else:
                 with open(coordfile) as fp:
                     junk = fp.readline().strip().split()[1]
-                    headers.extend(fp.readline().strip().split()[1:])        
+                    headers.extend(fp.readline().replace('#','').strip().split()[:])        
         # Else just use the one file headers
         if ((fext == '.gz') or (fext == '.GZ')):
             with gzip.open(filelist[0]) as fp:
                 timestring = fp.readline().strip().split()[1]
                 headers.extend(fp.readline().strip().split()[1:])
         else:
-            with open(filename) as fp:
+            with open(filelist[0]) as fp:
                 timestring = fp.readline().strip().split()[1]
-                headers.extend(fp.readline().strip().split()[1:])
+                headers.extend(fp.readline().replace('#','').strip().split()[:])
     # return everything
     return returndat, headers
 
