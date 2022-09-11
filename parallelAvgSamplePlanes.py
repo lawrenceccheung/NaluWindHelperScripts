@@ -136,3 +136,6 @@ def parallelAvgPlanes(filelist, nthreads, savefile,
     headerinfo='%s to %s'%(filelist[0], filelist[-1])
     avgplane.saveavg(avgdat, headers, savefile, headerinfo=headerinfo)
 
+    if deletetemp:
+        for tfile in tempfilenames:
+            os.remove(tfile)
