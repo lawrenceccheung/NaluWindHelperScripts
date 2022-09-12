@@ -89,6 +89,8 @@ def parallelAvgPlanes(filelist, nthreads, savefile,
                       coordfile='', tempfileformat='tempfile_{iter}.dat.gz',
                       getheaders=False, verbose=False,
                       skiprows=2, progressbar=None, deletetemp=False):
+    global globali
+
     def splitlist(a, n):
         k, m = divmod(len(a), n)
         return [a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
