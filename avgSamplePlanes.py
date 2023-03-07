@@ -106,9 +106,12 @@ def avgPlanesUU(filelist, avgdat, coordfile='',
                 timestring = fp.readline().strip().split()[1]
                 headers.extend(fp.readline().strip().split()[1:])
         else:
-            with open(filename) as fp:
+            with open(filelist[0]) as fp:
                 timestring = fp.readline().strip().split()[1]
-                headers.extend(fp.readline().strip().split()[1:])
+                headers.extend(fp.readline().replace('#','').strip().split()[:])
+#            with open(filename) as fp:
+#                timestring = fp.readline().strip().split()[1]
+#                headers.extend(fp.readline().strip().split()[1:])
     # return everything
     return returndat, headers
 
