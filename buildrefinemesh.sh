@@ -1,13 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 
 yamlfile=abl_preprocess.yaml
 outputmesh=refinedmesh.exo
 NCORES=8
+NPERNODE=36
 CREATEMESH=true
 RUNNALUPREPROC=true
 RUNREFINE=true
 CLUSTERARGS=""
-NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
+#NALUUTILDIR=~/nscratch/buildNalu/Nalu_intel/install/intel/nalu-wind/bin/
+#NALUUTILDIR=/ascldap/users/lcheung/wind_uq/NaluBuilds/ghost.20201216/install/intel/wind-utils/bin/
+#NALUUTILDIR=/projects/wind_uq/lcheung/NaluBuilds/cee-compute.20210305/install/gcc/wind-util/bin/
 
 # Help for this script
 function help() {
@@ -56,7 +59,7 @@ while (( "$#" )); do
 	    shift 
 	    ;;
 	--on-cluster)
-	    CLUSTERARGS="--bind-to core --npernode 16"
+	    CLUSTERARGS="--bind-to core --npernode $NPERNODE"
 	    shift 
 	    ;;
 	-h|--help)
@@ -98,13 +101,18 @@ echo "CLUSTERARGS= $CLUSTERARGS"
 
 # Load all of the stuff required to get Nalu up and running
 echo "Loading modules"
-module purge
-module load intel/18.0.2.199 gnu/7.3.1 mkl/18.0.2.199  openmpi-intel/2.1
-source /nscratch/lcheung/buildNalu/Nalu_intel/spack/share/spack/setup-env.sh
-spack load boost; 
-spack load netcdf; 
-spack load hdf5
-module load canopy
+
+#MODULEFILE=/projects/wind_uq/lcheung/NaluBuilds/ghost.20201216/source/nalu-wind/build-intel/loadnalumods.sh
+#MODULEFILE=$NALUUTILDIR/loadnalumods.sh
+MODULEFILE=/hpc_projects/wind_uq/lcheung/SpackManagerBuilds/spack-manager.20230309/loadexawind.sh
+if test -f "$MODULEFILE"; then
+    source $MODULEFILE
+    NALUX=`which naluX`
+    NALUUTILDIR=`dirname $NALUX`
+else
+    echo "Cannot load modules"
+    exit 1
+fi
 
 # Get the header needed to read the yaml file
 read -r -d '' READYAMLHEADER << EOM
@@ -120,7 +128,7 @@ EOM
 # ------
 meshbasename=`python - <<DOC
 $READYAMLHEADER
-print yamldata['nalu_preprocess']['output_db']
+print(yamldata['nalu_preprocess']['output_db'])
 DOC`
 echo "Output mesh name = $meshbasename"
 
@@ -128,14 +136,14 @@ echo "Output mesh name = $meshbasename"
 # -------
 Nrefinement=`python - <<DOC
 $READYAMLHEADER
-print len(yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels'])
+print(len(yamldata['nalu_preprocess']['mesh_local_refinement']['refinement_levels']))
 DOC`
 echo "Nrefinement = $Nrefinement"
 
 # Get the adapt file names
 percept_file_prefix=`python - <<DOC
 $READYAMLHEADER
-print yamldata['nalu_preprocess']['mesh_local_refinement']['percept_file_prefix']
+print(yamldata['nalu_preprocess']['mesh_local_refinement']['percept_file_prefix'])
 DOC`
 echo "percept_file_prefix = $percept_file_prefix"
 
@@ -152,6 +160,7 @@ fi
 # ------------------------
 if $RUNNALUPREPROC; then
     echo "Running the preprocessor"
+    #mpirun $CLUSTERARGS -n $NCORES $NALUUTILDIR/nalu_preprocess -i $yamlfile    
     $NALUUTILDIR/nalu_preprocess -i $yamlfile    
 fi
 
@@ -162,6 +171,7 @@ if $RUNREFINE; then
     echo "Running mesh refinement step"
     module purge
     module load sierra
+    module load seacas
     tempmesh=tempmesh
     # link the mesh file to the first one
     ln -s $meshbasename ${tempmesh}0.e
