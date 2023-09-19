@@ -9,7 +9,7 @@ from numpy import *
 import matplotlib
 matplotlib.use('TkAgg')
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
@@ -23,6 +23,14 @@ if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+# Load NavigationToolbar2TkAgg
+try:
+    # For newer matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
+except:
+    # For older matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 class ScrollableFrame(Tk.Frame):
     def __init__(self, master, height=250, **kwargs):
@@ -136,11 +144,16 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers.extend(fp.readline().strip().split()[1:])
+            headerline = str(fp.readline().decode('utf-8'))
+            print(headerline.replace("#",""))
+            #headerstr = fp.readline().replace("#","").strip().split()
+            headerstr = headerline.replace("#","").strip().split()
+            headers.extend(headerstr[:])
     else:
         with open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headers.extend(fp.readline().strip().split()[1:])
+            headerstr = fp.readline().replace("#","").strip().split()
+            headers.extend(headerstr[:])
     time=float(timestring.decode('utf-8').replace(",",""))
     #print time, headers
     fp.close()
@@ -152,12 +165,15 @@ def evalexpr(expr, data, varnames):
         answer=answer.replace(var.decode('utf-8'), '('+repr(data[ivar])+')')
     return eval(answer)
     
-def getplotplane(dat, planenum, col, expr='',headers=[]):
+def getplotplane(dat, planenum, col, expr='',headers=[],xycol=None):
     Numj      = int(max(dat[:,1]))+1
     Numi      = int(max(dat[:,2]))+1
 
     planedat=dat[dat[:,0]==planenum,:]
-    plotplane=planedat[:,[1,2,col]]
+    if xycol is None:
+        plotplane=planedat[:,[1,2,col]]
+    else:
+        plotplane=planedat[:,[xycol[0],xycol[1],col]]
 
     if len(expr)>0:
         if len(headers)==0: 
@@ -167,13 +183,17 @@ def getplotplane(dat, planenum, col, expr='',headers=[]):
             planerow = planedat[irow, :]
             plotplane[irow, 2] = evalexpr(expr, planerow, headers)
 
-    # Get the corner point
-    cornerrow =planedat[(planedat[:,1]==0)&(planedat[:,2]==0),:][0][3:6]
-    dxrow     =planedat[(planedat[:,1]==0)&(planedat[:,2]==1),:][0][3:6]
-    dyrow     =planedat[(planedat[:,1]==1)&(planedat[:,2]==0),:][0][3:6]
-
-    dX=linalg.norm(array(dxrow)-array(cornerrow))
-    dY=linalg.norm(array(dyrow)-array(cornerrow))
+    if xycol is None:
+        # Get the corner point
+        cornerrow =planedat[(planedat[:,1]==0)&(planedat[:,2]==0),:][0][3:6]
+        dxrow     =planedat[(planedat[:,1]==0)&(planedat[:,2]==1),:][0][3:6]
+        dyrow     =planedat[(planedat[:,1]==1)&(planedat[:,2]==0),:][0][3:6]
+    
+        dX=linalg.norm(array(dxrow)-array(cornerrow))
+        dY=linalg.norm(array(dyrow)-array(cornerrow))
+    else:
+        dX=1.0
+        dY=1.0
 
     # Get the X, Y, Z arrays
     Y=reshape(plotplane[:,0], (Numj, Numi))*dY
@@ -214,7 +234,7 @@ def _plotdata():
     canvas.draw()
     toolbar.update()
     fig.tight_layout()
-    canvas.show()
+    #canvas.show()
 
 # Run all of the gui elements
 def doGUI():
@@ -237,7 +257,8 @@ def doGUI():
     toolbar = NavigationToolbar2TkAgg(canvas, center)
     toolbar.update()
     canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-    canvas.show()
+    #canvas.show()
+    canvas.draw()
     canvas.mpl_connect('key_press_event', on_key_event)
 
     # -- Set up radio bars --

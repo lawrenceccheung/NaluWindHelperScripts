@@ -16,7 +16,7 @@ from numpy import *
 import matplotlib
 matplotlib.use('TkAgg')
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
@@ -29,6 +29,14 @@ if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+# Load NavigationToolbar2TkAgg
+try:
+    # For newer matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
+except:
+    # For older matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 nogui=True
 
@@ -115,8 +123,9 @@ class ABLStatsFileClass():
         self.w_h = interpolate.interp1d(self.heights, velocity[:, :, 2], axis=1)
 
         # Temperature
-        temperature = self.abl_stats.variables['temperature']
-        self.T_h = interpolate.interp1d(self.heights, temperature[:, :], axis=1)
+        if 'temperature' in self.abl_stats.variables:
+            temperature = self.abl_stats.variables['temperature']
+            self.T_h = interpolate.interp1d(self.heights, temperature[:, :], axis=1)
 
     def time_average(self, field='velocity', index=0, times=[0., 100], scalar=False, zeroD=False):
         '''
@@ -603,18 +612,24 @@ def plotTIstreamwiseprofile(data, figax, tlims=[], **kwargs):
     #TIstream    = sqrt(uprime2tavg)/ulong
 
     # TKE/TI
-    uu = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
-    uv = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
-    vv = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
-    ww = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+    uu_r = data.time_average(field='resolved_stress', index=0, times=[t1, t2])
+    uv_r = data.time_average(field='resolved_stress', index=1, times=[t1, t2])
+    vv_r = data.time_average(field='resolved_stress', index=3, times=[t1, t2])
+    ww_r = data.time_average(field='resolved_stress', index=5, times=[t1, t2])
+
+    uu_s = data.time_average(field='sfs_stress', index=0, times=[t1, t2])
+    uv_s = data.time_average(field='sfs_stress', index=1, times=[t1, t2])
+    vv_s = data.time_average(field='sfs_stress', index=3, times=[t1, t2])
+    ww_s = data.time_average(field='sfs_stress', index=5, times=[t1, t2])
+
+    uu = uu_r + uu_s
+    uv = uv_r + uv_s
+    vv = vv_r + vv_s
+    ww = ww_r + ww_s
+
     tke = 0.5*(uu+vv+ww)
     TI = sqrt(2.0/3.0*tke)/u_mag
 
-    uprime = sqrt(uu)
-    vprime = sqrt(vv)
-    # === method 1 ====
-    ulongprime = uprime*nx + vprime*ny
-    TIstream = ulongprime/ulong
     # === method 2 ====
     ulongprime = sqrt(uu*nx*nx + vv*ny*ny + 2*uv*nx*ny)
     TIstream = ulongprime/ulong
@@ -699,7 +714,7 @@ def plotTIhorizontalprofile(data, figax, tlims=[], **kwargs):
     if 'ylims'    in plotdict: figax.set_ylim(plotdict['ylims'])
     return
 
-def reportABLstats(data, heights=[], tlims=[]):
+def reportABLstats(data, heights=[], tlims=[], TItype='resolved'):
     outdata=[]
     if len(tlims)>0:
         t1 = tlims[0]
@@ -713,11 +728,22 @@ def reportABLstats(data, heights=[], tlims=[]):
     u_mag = np.sqrt(u**2 + v**2)
     # TKE/TI
     fieldstr='resolved_stress'
-    #fieldstr='sfs_stress_tavg'
     uu = data.time_average(field=fieldstr, index=0, times=[t1, t2])
     vv = data.time_average(field=fieldstr, index=3, times=[t1, t2])
     ww = data.time_average(field=fieldstr, index=5, times=[t1, t2])
-    tke = 0.5*(uu+vv+ww)
+    tke_res = 0.5*(uu+vv+ww)
+    fieldstr='sfs_stress' #'sfs_stress_tavg'
+    uu_sfs = data.time_average(field=fieldstr, index=0, times=[t1, t2])
+    vv_sfs = data.time_average(field=fieldstr, index=3, times=[t1, t2])
+    ww_sfs = data.time_average(field=fieldstr, index=5, times=[t1, t2])
+    tke_sfs = 0.5*(uu_sfs + vv_sfs + ww_sfs)
+    if TItype=='resolved':
+        tke = tke_res
+    elif TItype=='total':
+        tke = tke_res + tke_sfs
+    else:
+        print('TItype %s not recognized'%TItype)
+        sys.exit(1)
     TI = sqrt(2.0/3.0*tke)/u_mag
     # Shear
     dudz = (u_mag[1:]-u_mag[0:-1])/(z[1:]-z[0:-1])
