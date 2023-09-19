@@ -16,7 +16,7 @@ from numpy import *
 import matplotlib
 matplotlib.use('TkAgg')
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
@@ -29,6 +29,14 @@ if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+# Load NavigationToolbar2TkAgg
+try:
+    # For newer matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
+except:
+    # For older matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 nogui=True
 
