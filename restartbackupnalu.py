@@ -152,7 +152,10 @@ if doFASTALM:
             # Copy the sum file
             newsumfile=fastfilebase+".T%i.sum.%s"%(i+1,suffix)
             print("# copying: %s --> %s"%(sumfile, newsumfile))
-            shutil.copy2(sumfile, newsumfile)
+            try:
+                shutil.copy2(sumfile, newsumfile)
+            except:
+                print("Copy of sum file failed, skipping")
 
 # backup the restart file
 if doBackup:

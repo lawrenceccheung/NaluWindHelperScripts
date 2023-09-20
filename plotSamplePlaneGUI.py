@@ -9,7 +9,7 @@ from numpy import *
 import matplotlib
 matplotlib.use('TkAgg')
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
@@ -23,6 +23,14 @@ if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+# Load NavigationToolbar2TkAgg
+try:
+    # For newer matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
+except:
+    # For older matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 class ScrollableFrame(Tk.Frame):
     def __init__(self, master, height=250, **kwargs):
@@ -136,7 +144,10 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headerstr = fp.readline().replace("#","").strip().split()
+            headerline = str(fp.readline().decode('utf-8'))
+            print(headerline.replace("#",""))
+            #headerstr = fp.readline().replace("#","").strip().split()
+            headerstr = headerline.replace("#","").strip().split()
             headers.extend(headerstr[:])
     else:
         with open(filename) as fp:
@@ -223,7 +234,7 @@ def _plotdata():
     canvas.draw()
     toolbar.update()
     fig.tight_layout()
-    canvas.show()
+    #canvas.show()
 
 # Run all of the gui elements
 def doGUI():
@@ -246,7 +257,8 @@ def doGUI():
     toolbar = NavigationToolbar2TkAgg(canvas, center)
     toolbar.update()
     canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-    canvas.show()
+    #canvas.show()
+    canvas.draw()
     canvas.mpl_connect('key_press_event', on_key_event)
 
     # -- Set up radio bars --
