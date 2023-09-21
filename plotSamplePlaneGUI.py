@@ -32,6 +32,12 @@ except:
     # For older matplotlibs
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
+def strdecode(v):
+    if sys.version_info[0] < 3:
+        return v.decode('utf-8')
+    else:
+        return v
+
 class ScrollableFrame(Tk.Frame):
     def __init__(self, master, height=250, **kwargs):
         Tk.Frame.__init__(self, master, **kwargs)
@@ -144,7 +150,8 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
     if ((fext == '.gz') or (fext == '.GZ')):
         with gzip.open(filename) as fp:
             timestring = fp.readline().strip().split()[1]
-            headerline = str(fp.readline().decode('utf-8'))
+            #headerline = str(fp.readline().decode('utf-8'))
+            headerline = str(strdecode(fp.readline()))
             print(headerline.replace("#",""))
             #headerstr = fp.readline().replace("#","").strip().split()
             headerstr = headerline.replace("#","").strip().split()
@@ -154,7 +161,8 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
             timestring = fp.readline().strip().split()[1]
             headerstr = fp.readline().replace("#","").strip().split()
             headers.extend(headerstr[:])
-    time=float(timestring.decode('utf-8').replace(",",""))
+    #time=float(timestring.decode('utf-8').replace(",",""))
+    time=float(strdecode(timestring).replace(",",""))
     #print time, headers
     fp.close()
     return dat, time, headers
@@ -162,7 +170,7 @@ def loadplanefile(filename, checkcomma=False, coordfile=''):
 def evalexpr(expr, data, varnames):
     answer=expr
     for ivar, var in enumerate(varnames):
-        answer=answer.replace(var.decode('utf-8'), '('+repr(data[ivar])+')')
+        answer=answer.replace(strdecode(var), '('+repr(data[ivar])+')')
     return eval(answer)
     
 def getplotplane(dat, planenum, col, expr='',headers=[],xycol=None):
