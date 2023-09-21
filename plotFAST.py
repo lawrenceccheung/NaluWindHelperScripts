@@ -9,7 +9,7 @@ from numpy import *
 import matplotlib
 matplotlib.use('TkAgg')
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg #, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
@@ -21,6 +21,14 @@ if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+# Load NavigationToolbar2TkAgg
+try:
+    # For newer matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
+except:
+    # For older matplotlibs
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 ##################
 def loadoutfile(filename):
@@ -131,7 +139,7 @@ def _plotdata():
     ax.legend(prop={'size': 10})
     canvas.draw()
     toolbar.update()
-    canvas.show()
+    #canvas.show()
 
 def _quit():
     center.quit()     # stops mainloop
@@ -178,7 +186,8 @@ canvas=FigureCanvasTkAgg(fig,master=center)
 toolbar = NavigationToolbar2TkAgg(canvas, center)
 toolbar.update()
 canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-canvas.show()
+#canvas.show()
+canvas.draw()
 canvas.mpl_connect('key_press_event', on_key_event)
 
 # Get the scrollable checkbox frame
