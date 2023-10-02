@@ -36,7 +36,10 @@ def strdecode(v):
     if sys.version_info[0] < 3:
         return v.decode('utf-8')
     else:
-        return v
+        try:
+            return str(v, encoding='utf-8')
+        except:
+            return v
 
 class ScrollableFrame(Tk.Frame):
     def __init__(self, master, height=250, **kwargs):
