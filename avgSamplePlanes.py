@@ -6,6 +6,15 @@ import sys, os
 import argparse
 import gzip
 
+def strdecode(v):
+    if sys.version_info[0] < 3:
+        return v.decode('utf-8')
+    else:
+        try:
+            return str(v, encoding='utf-8')
+        except:
+            return v
+
 # See https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
 def progress(count, total, suffix=''):
     """
@@ -116,8 +125,9 @@ def avgPlanesUU(filelist, avgdat, coordfile='',
     return returndat, headers
 
 def saveavg(avgdat, headers, savefile, headerinfo=''):
+    strheaders = [strdecode(s) for s in headers]
     # construct the headers
-    colheaders=' '.join(headers)
+    colheaders=' '.join(strheaders)
     topheader='#Time: 0.0 AVERAGED PLANES '+headerinfo
     np.savetxt(savefile, avgdat, header=topheader+'\n# '+colheaders, comments='')
     return
