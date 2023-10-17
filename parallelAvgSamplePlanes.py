@@ -141,3 +141,136 @@ def parallelAvgPlanes(filelist, nthreads, savefile,
     if deletetemp:
         for tfile in tempfilenames:
             os.remove(tfile)
+
+
+def avgPlanesUU(filelist, savefile, lock, avgdat, Ntotal, coordfile='', 
+                getheaders=False, skiprows=2, progressbar=None):
+    """
+    Average sample planes
+    """
+    global globali
+    Nfiles=len(filelist)
+    for ip, planefile in enumerate(filelist):
+        if progressbar=='file' or progressbar=='both':
+            lock.acquire()
+            print(planefile)
+            lock.release()
+        if progressbar=='bar' or progressbar=='both':
+            lock.acquire()
+            globali += 1
+            avgplane.progress(globali, Ntotal,suffix='[%i/%i]'%(globali,Ntotal))
+            lock.release()
+
+        #if progressbar: progress(ip+1, Nfiles, suffix='[%i/%i]'%(ip+1,Nfiles))
+        u = np.loadtxt(planefile, skiprows=skiprows)
+        Ncols = u.shape[1]
+        up = u - avgdat[:,-Ncols:]
+        if ip==0:
+            alldat =  up*up
+        else:
+            alldat += up*up
+    #if progressbar: print("")
+    avgdat=alldat/Nfiles
+    # Add the coordinates if necessary
+    if len(coordfile)>0:
+        cdat=np.loadtxt(coordfile, skiprows=skiprows)
+        returndat = np.hstack((cdat, avgdat))
+    else:
+        returndat = avgdat
+    # Get the headers if necessary
+    headers=[]
+    if getheaders:
+        fname, fext = os.path.splitext(filelist[0])
+        # Load the headers from the coordfile
+        if len(coordfile)>0:
+            if ((fext == '.gz') or (fext == '.GZ')):
+                with gzip.open(coordfile) as fp:
+                    junk = fp.readline().strip().split()[1]
+                    headers.extend(fp.readline().strip().split()[1:])
+            else:
+                with open(coordfile) as fp:
+                    junk = fp.readline().strip().split()[1]
+                    headers.extend(fp.readline().strip().split()[1:])        
+        # Else just use the one file headers
+        if ((fext == '.gz') or (fext == '.GZ')):
+            with gzip.open(filelist[0]) as fp:
+                timestring = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().strip().split()[1:])
+        else:
+            with open(filelist[0]) as fp:
+                timestring = fp.readline().strip().split()[1]
+                headers.extend(fp.readline().replace('#','').strip().split()[:])
+    # return everything
+    #return returndat, headers
+    # Save the result
+    headerinfo='%s to %s'%(filelist[0], filelist[-1])
+    avgplane.saveavg(returndat, headers, savefile, headerinfo=headerinfo)
+    return
+
+
+def avgThreadUU(filelist, savefile, lock, avgdat,
+                Ntotal, coordfile='', getheaders=False, 
+                skiprows=2, progressbar='bar'):
+    print(coordfile)
+    avgPlanesUU(filelist, savefile, lock, avgdat, Ntotal,
+                coordfile=coordfile, 
+                getheaders=getheaders, skiprows=skiprows, 
+                progressbar=progressbar)
+    
+
+def parallelAvgPlanesUU(filelist, nthreads, savefile, avgdat,
+                        coordfile='', tempfileformat='tempfile_{iter}.dat.gz',
+                        getheaders=False, verbose=False,
+                        skiprows=2, progressbar=None, deletetemp=False):
+    global globali
+
+    def splitlist(a, n):
+        k, m = divmod(len(a), n)
+        return [a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
+
+    # First make sure that the filelist is divisible
+    Nfilelist = len(filelist)
+    if Nfilelist % nthreads != 0:
+        print("Num files = %i"%Nfilelist)
+        print("Nthreads  = %i"%nthreads)
+        print("ERROR: not divisible")
+        return
+    Nchunks = Nfilelist/nthreads
+    
+    splitfilelist = splitlist(filelist, nthreads)
+    tempfilenames = [tempfileformat.format(iter=i) for i in range(nthreads)]
+
+    globali = 0
+
+    # Launch threads
+    threads = list()
+    lock= threading.Lock()
+    for i in range(nthreads):
+        if verbose: print("Thread %i: %s"%(i, tempfilenames[i]))
+        t = threading.Thread(target=avgThreadUU, 
+                             args=(splitfilelist[i], tempfilenames[i], lock,
+                                   avgdat, Nfilelist),
+                             kwargs={'coordfile':coordfile, 
+                                     'getheaders':getheaders, 
+                                     'skiprows':skiprows, 
+                                     'progressbar':progressbar, 
+                                 })
+        threads.append(t)
+        if verbose: print("Starting thread %i"%i)
+        t.start()
+
+    # Collect all threads
+    for index, thread in enumerate(threads):
+        thread.join()
+        if verbose: print("Closing thread %i"%index)
+        
+    # Average over the averages
+    print("")
+    print("Averaging over temp avg files")
+    avgdat, headers=avgplane.avgPlanes(tempfilenames, getheaders=True, progressbar=progressbar)
+    headerinfo='%s to %s'%(filelist[0], filelist[-1])
+    avgplane.saveavg(avgdat, headers, savefile, headerinfo=headerinfo)
+
+    if deletetemp:
+        for tfile in tempfilenames:
+            os.remove(tfile)
